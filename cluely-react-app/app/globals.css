@@ -1,0 +1,248 @@
+@import "tailwindcss";
+
+/* EB Garamond Font */
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/5f71c95f033dfc8c-s.woff2) format("woff2");unicode-range:u+0460-052f,u+1c80-1c8a,u+20b4,u+2de0-2dff,u+a640-a69f,u+fe2e-fe2f}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/30d33c3967e87378-s.woff2) format("woff2");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/1c129dc46aedbd21-s.woff2) format("woff2");unicode-range:u+1f??}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/63c91b6097718231-s.woff2) format("woff2");unicode-range:u+0370-0377,u+037a-037f,u+0384-038a,u+038c,u+038e-03a1,u+03a3-03ff}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/811c98f9e5d3ac54-s.woff2) format("woff2");unicode-range:u+0102-0103,u+0110-0111,u+0128-0129,u+0168-0169,u+01a0-01a1,u+01af-01b0,u+0300-0301,u+0303-0304,u+0308-0309,u+0323,u+0329,u+1ea0-1ef9,u+20ab}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/e5c0e3884523c260-s.woff2) format("woff2");unicode-range:u+0100-02ba,u+02bd-02c5,u+02c7-02cc,u+02ce-02d7,u+02dd-02ff,u+0304,u+0308,u+0329,u+1d00-1dbf,u+1e00-1e9f,u+1ef2-1eff,u+2020,u+20a0-20ab,u+20ad-20c0,u+2113,u+2c60-2c7f,u+a720-a7ff}
+@font-face{font-family:EB Garamond;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/1e33a8f09887097d-s.p.woff2) format("woff2");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+0304,u+0308,u+0329,u+2000-206f,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}
+@font-face{font-family:EB Garamond Fallback;src:local("Times New Roman");ascent-override:106.26%;descent-override:31.44%;line-gap-override:0.00%;size-adjust:94.77%}
+
+/* Geist Font */
+@font-face{font-family:Geist;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/8d697b304b401681-s.woff2) format("woff2");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}
+@font-face{font-family:Geist;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/ba015fad6dcf6784-s.woff2) format("woff2");unicode-range:u+0100-02ba,u+02bd-02c5,u+02c7-02cc,u+02ce-02d7,u+02dd-02ff,u+0304,u+0308,u+0329,u+1d00-1dbf,u+1e00-1e9f,u+1ef2-1eff,u+2020,u+20a0-20ab,u+20ad-20c0,u+2113,u+2c60-2c7f,u+a720-a7ff}
+@font-face{font-family:Geist;font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/4cf2300e9c8272f7-s.p.woff2) format("woff2");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+0304,u+0308,u+0329,u+2000-206f,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}
+@font-face{font-family:Geist;font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/8d697b304b401681-s.woff2) format("woff2");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}
+@font-face{font-family:Geist;font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/ba015fad6dcf6784-s.woff2) format("woff2");unicode-range:u+0100-02ba,u+02bd-02c5,u+02c7-02cc,u+02ce-02d7,u+02dd-02ff,u+0304,u+0308,u+0329,u+1d00-1dbf,u+1e00-1e9f,u+1ef2-1eff,u+2020,u+20a0-20ab,u+20ad-20c0,u+2113,u+2c60-2c7f,u+a720-a7ff}
+@font-face{font-family:Geist;font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/4cf2300e9c8272f7-s.p.woff2) format("woff2");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+0304,u+0308,u+0329,u+2000-206f,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}
+@font-face{font-family:Geist;font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/8d697b304b401681-s.woff2) format("woff2");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}
+@font-face{font-family:Geist;font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/ba015fad6dcf6784-s.woff2) format("woff2");unicode-range:u+0100-02ba,u+02bd-02c5,u+02c7-02cc,u+02ce-02d7,u+02dd-02ff,u+0304,u+0308,u+0329,u+1d00-1dbf,u+1e00-1e9f,u+1ef2-1eff,u+2020,u+20a0-20ab,u+20ad-20c0,u+2113,u+2c60-2c7f,u+a720-a7ff}
+@font-face{font-family:Geist;font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/4cf2300e9c8272f7-s.p.woff2) format("woff2");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+0304,u+0308,u+0329,u+2000-206f,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}
+@font-face{font-family:Geist Fallback;src:local("Arial");ascent-override:95.94%;descent-override:28.16%;line-gap-override:0.00%;size-adjust:104.76%}
+
+/* Forma Font */
+@font-face{font-family:forma;src:url(/fonts/bfc93208d11e3771-s.p.woff2) format("woff2");font-display:swap}
+@font-face{font-family:forma Fallback;src:local("Arial");ascent-override:114.72%;descent-override:25.27%;line-gap-override:0.00%;size-adjust:93.18%}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Geist, Geist Fallback, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --font-forma: forma, forma Fallback, Arial, sans-serif;
+  --font-eb-garamond: EB Garamond, EB Garamond Fallback, Times New Roman, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Geist, Geist Fallback, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ==== Gradient Button & Blurred Border (migrated from legacy hashed CSS) ==== */
+.blurred-border {
+  opacity: 0.45;
+  z-index: 2;
+  background: linear-gradient(176.87deg, #ffffff80 8.56%, #fff0 85.04%);
+  border-radius: 6px;
+  padding: 3px;
+  mask-image: linear-gradient(#fff 0 0), linear-gradient(#fff 0 0);
+  mask-position: 0 0, 0 0;
+  mask-size: auto, auto;
+  mask-repeat: repeat, repeat;
+  mask-clip: content-box, border-box;
+  mask-origin: content-box, border-box;
+  -webkit-mask-image: linear-gradient(#fff 0 0), linear-gradient(#fff 0 0);
+  -webkit-mask-position: 0 0, 0 0;
+  -webkit-mask-size: auto, auto;
+  -webkit-mask-repeat: repeat, repeat;
+  -webkit-mask-clip: content-box, border-box;
+  -webkit-mask-origin: content-box, border-box;
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  -webkit-mask-source-type: auto, auto;
+  mask-mode: match-source, match-source;
+}
+
+.purple-gradient-button {
+  background: radial-gradient(114.65% 114.65% at 9.73% 17.27%, #1e82e0 0, #1c38ea 100%);
+  transition: transform 0.16s ease-out;
+  box-shadow: 0 62px 17px #0c39ed00, 0 40px 16px #0c39ed08,
+    0 22px 13px #0c39ed17, 0 10px 10px #0c39ed26, 0 2px 5px #0c39ed2b,
+    20px 20px 24px #94acf366, inset -3px -3px 4px #bfe5fb66,
+    inset 4px 4px 4px #131ae41a;
+  position: relative;
+}
+.purple-gradient-button .blurred-border { border-radius: 10px; }
+.purple-gradient-button:after {
+  content: "";
+  mix-blend-mode: overlay;
+  border-radius: inherit;
+  z-index: 0;
+  opacity: 0;
+  background: radial-gradient(101.79% 101.79% at 65.61% 81.79%, #fff9 0);
+  transition: opacity 0.3s ease-in-out;
+  position: absolute;
+  inset: 1px;
+}
+@media (min-width: 768px) {
+  .purple-gradient-button { border-radius: 12px; font-size: 16px; }
+  .purple-gradient-button .blurred-border { border-radius: 12px; }
+  .purple-gradient-button:hover:after { opacity: 0.4; }
+  .purple-gradient-button:hover { transform: scale(1.03); }
+}
+.purple-gradient-button:active { transform: scale(0.97); }
+
+
+/* Utility class for forma font */
+.font-forma {
+  font-family: forma, forma Fallback, Arial, sans-serif;
+}
+
+/* Utility class for serif display titles */
+.font-title {
+  font-family: EB Garamond, EB Garamond Fallback, Times New Roman, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Utility class for EB Garamond */
+.font-eb-garamond {
+  font-family: EB Garamond, EB Garamond Fallback, Times New Roman, serif;
+}
+
+/* ==== Card container used in feature demos ==== */
+.card-styles {
+  aspect-ratio: 426/406;
+  background-image: radial-gradient(92.09% 126.39% at 50% 100%, #dde2ee 58.91%, #bbc5dd 100%);
+  border-radius: 16px;
+  max-width: 320px;
+  margin-inline: auto;
+  position: relative;
+  overflow: hidden;
+}
+@media (min-width: 48rem) {
+  .card-styles { border-radius: 20px; max-width: none; }
+}
+@media (min-width: 80rem) {
+  .card-styles { border-radius: 1.5rem; }
+}
+
+/* Gray color scale */
+.text-gray-40 { color: #5e616e; }
+.text-gray-80 { color: #c7c9d1; }
+.text-gray-90 { color: #e0e1e6; }
+
+/* Leading utilities */
+.leading-tightest { line-height: 1.125; }
+
+/* Marquee text animation - 4 phrases cycling every ~2 seconds each */
+@keyframes fadeInOut1 {
+  0%, 25% { opacity: 1; }
+  30%, 100% { opacity: 0; }
+}
+
+@keyframes fadeInOut2 {
+  0%, 25% { opacity: 0; }
+  30%, 50% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+
+@keyframes fadeInOut3 {
+  0%, 50% { opacity: 0; }
+  55%, 75% { opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+
+@keyframes fadeInOut4 {
+  0%, 75% { opacity: 0; }
+  80%, 95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes marqueeVideoFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.marquee-video-animated {
+  animation: marqueeVideoFadeIn 0.6s ease-in-out 0.3s forwards;
+}
+
+/* Hero v2 background */
+.hero-v2 {
+  background-image: -webkit-image-set(
+    url(/images/pages/home/background.png) 1x,
+    url(/images/pages/home/background@2x.png) 2x,
+    url(/images/pages/home/background@4x.png) 4x
+  );
+  background-image: image-set(
+    "/images/pages/home/background.png" 1x,
+    "/images/pages/home/background@2x.png" 2x,
+    "/images/pages/home/background@4x.png" 4x
+  );
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Hero Animation Keyframes */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  opacity: 0;
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+.animate-fade-in {
+  opacity: 0;
+  animation: fade-in 0.6s ease-out forwards;
+}

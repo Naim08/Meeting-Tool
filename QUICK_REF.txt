@@ -1,0 +1,68 @@
+╔═══════════════════════════════════════════════════════════╗
+║         Custom Solver Build System - Quick Ref           ║
+╚═══════════════════════════════════════════════════════════╝
+
+📁 Location: ~/CustomSolverBuilds
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 WORKFLOW OPTIONS:
+
+Option 1: Build from main source (your solverapp repo)
+  cd /Users/Naim/CascadeProjects/solverapp
+  # Edit files in src/
+  cd ~/CustomSolverBuilds
+  ./build-custom.sh MyAppName
+
+Option 2: Edit extracted asar and rebuild (fastest)
+  cd ~/CustomSolverBuilds
+  ./edit-and-rebuild.sh MyAppName
+  
+  OR manually:
+  1. Edit: patched-source/asar-extracted/out/main/index.js
+  2. Run:  ./rebuild-from-asar.sh MyAppName
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 KEY FILES TO EDIT:
+
+Main Process (Electron backend):
+  patched-source/asar-extracted/out/main/index.js
+
+Preload Script:
+  patched-source/asar-extracted/out/preload/index.js
+
+Renderer (UI):
+  patched-source/asar-extracted/out/renderer/index.html
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 COMMON EDITS:
+
+Remove single-instance lock (already done at line ~703):
+  s.app.requestSingleInstanceLock() → true
+
+Change hotkeys (search for):
+  m = { screengrab: "Control+Esc", ... }
+
+Modify window size (search for):
+  new s.BrowserWindow({ width: 1024, height: 1024, ... })
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 OUTPUT:
+
+Built apps: ~/CustomSolverBuilds/builds/*.app
+Packed asar: ~/CustomSolverBuilds/builds/*.asar
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIPS:
+
+• Each app needs a unique CFBundleIdentifier
+• Scripts auto-generate: com.yourname.{AppName}
+• Use descriptive names: Solver1, SolverBackup, etc.
+• Original template: /Applications/InterviewSolverv1.app
+• Always use sudo with codesign and xattr commands
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
