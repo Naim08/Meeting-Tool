@@ -1,6 +1,10 @@
 
 import { ArrowLeft, Download, Share2, Mic, Monitor } from "lucide-react";
+import { useState } from "react";
 import { MeetingDetail } from "./helpers";
+import { useExport } from "../../hooks/useExport";
+import { ExportToast } from "../ExportToast";
+import type { ExportResult } from "../../../types/export";
 
 const ConversationBubble = ({ segment, source }: { segment: any, source: any }) => (
   <div className={`flex items-start gap-3 my-4 ${source.type === 'microphone' ? 'flex-row-reverse' : ''}`}>
@@ -15,6 +19,17 @@ const ConversationBubble = ({ segment, source }: { segment: any, source: any }) 
 );
 
 export function MeetingDetailViewV2({ meetingDetail, onBack }: { meetingDetail: MeetingDetail | null, onBack: () => void }) {
+  const [exportResult, setExportResult] = useState<ExportResult | null>(null);
+
+  const { exportConversation, isExporting, progress, error: exportError, openDirectory, openFile } = useExport({
+    onSuccess: (result) => {
+      setExportResult(result);
+    },
+    onError: (err) => {
+      console.error('Export failed:', err);
+    },
+  });
+
   if (!meetingDetail) {
     return <div>Loading...</div>;
   }
@@ -35,7 +50,15 @@ export function MeetingDetailViewV2({ meetingDetail, onBack }: { meetingDetail: 
           </p>
         </div>
         <div className="flex space-x-2">
-          <button className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700"><Download size={20} /></button>
+          <button
+            onClick={() => exportConversation(meetingDetail.id, 'meeting')}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Export meeting to markdown"
+          >
+            <Download size={20} />
+            {isExporting ? 'Exporting...' : 'Export'}
+          </button>
           <button className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700"><Share2 size={20} /></button>
         </div>
       </header>
@@ -53,6 +76,19 @@ export function MeetingDetailViewV2({ meetingDetail, onBack }: { meetingDetail: 
           ))}
         </div>
       </div>
+
+      {/* Export Toast */}
+      <ExportToast
+        progress={progress}
+        error={exportError}
+        exportPath={exportResult?.exportPath}
+        conversationPath={exportResult?.conversationPath}
+        onOpenDirectory={() => exportResult?.exportPath && openDirectory(exportResult.exportPath)}
+        onOpenFile={() => exportResult?.conversationPath && openFile(exportResult.conversationPath)}
+        onClose={() => {
+          setExportResult(null);
+        }}
+      />
     </div>
   );
 }

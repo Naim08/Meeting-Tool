@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
 import MessageList from "@/components/message-list";
+import { useExport } from "@/hooks/useExport";
+import { ExportToast } from "../ExportToast";
 import type {
   ChatMessageRecord,
   ChatSessionRecord,
   ChatSessionWithMessages,
 } from "../../../types/chat-history";
+import type { ExportResult } from "../../../types/export";
 
 const formatTimestamp = (value: number | null | undefined) => {
   if (!value) return "—";
@@ -34,6 +37,16 @@ export default function ChatHistoryView() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [exportResult, setExportResult] = useState<ExportResult | null>(null);
+
+  const { exportConversation, isExporting, progress, error: exportError, openDirectory, openFile } = useExport({
+    onSuccess: (result) => {
+      setExportResult(result);
+    },
+    onError: (err) => {
+      console.error('Export failed:', err);
+    },
+  });
 
   const loadSessions = useCallback(async () => {
     if (!window.api?.chatHistory?.listSessions) {
@@ -287,18 +300,29 @@ export default function ChatHistoryView() {
               </div>
             ) : (
               <div className="flex h-full flex-col gap-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {selectedSession.session.title ?? "Untitled conversation"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTimestamp(selectedSession.session.startedAt)} • {formatDuration(selectedSession.session)} • {selectedSession.session.messageCount} messages
-                  </p>
-                  {selectedSession.session.lastMessagePreview && (
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1 flex-1">
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {selectedSession.session.title ?? "Untitled conversation"}
+                    </h2>
                     <p className="text-xs text-muted-foreground">
-                      Last message: {selectedSession.session.lastMessagePreview}
+                      {formatTimestamp(selectedSession.session.startedAt)} • {formatDuration(selectedSession.session)} • {selectedSession.session.messageCount} messages
                     </p>
-                  )}
+                    {selectedSession.session.lastMessagePreview && (
+                      <p className="text-xs text-muted-foreground">
+                        Last message: {selectedSession.session.lastMessagePreview}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => exportConversation(selectedSession.session.id)}
+                    disabled={isExporting}
+                    className="inline-flex items-center gap-2 rounded-lg border border-primary/60 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Export conversation to markdown"
+                  >
+                    <Download className="h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export'}
+                  </button>
                 </div>
                 <div className="flex-1 overflow-y-auto rounded-xl border border-border/50 bg-background/70 p-4">
                   {formattedMessages.length === 0 ? (
@@ -314,6 +338,19 @@ export default function ChatHistoryView() {
           </section>
         </div>
       </div>
+
+      {/* Export Toast */}
+      <ExportToast
+        progress={progress}
+        error={exportError}
+        exportPath={exportResult?.exportPath}
+        conversationPath={exportResult?.conversationPath}
+        onOpenDirectory={() => exportResult?.exportPath && openDirectory(exportResult.exportPath)}
+        onOpenFile={() => exportResult?.conversationPath && openFile(exportResult.conversationPath)}
+        onClose={() => {
+          setExportResult(null);
+        }}
+      />
     </div>
   );
 }

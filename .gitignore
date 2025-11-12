@@ -28,3 +28,6 @@ audioRecorder.ts
 cluely-react-app/README.md
 activate-account.js
 activate-user.sql
+exports/
+.yarn/
+.claude/

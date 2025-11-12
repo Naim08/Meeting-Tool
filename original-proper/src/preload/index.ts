@@ -6,6 +6,11 @@ import type {
   CreateChatSessionPayload,
   ListChatSessionsParams,
 } from '../types/chat-history'
+import type {
+  ExportRequest,
+  ExportResult,
+  ExportProgress,
+} from '../types/export'
 
 const api = {
   sendMessage: (message: string) => {
@@ -107,6 +112,26 @@ const api = {
       ipcRenderer.invoke('chat-history:update-title', sessionId, title),
     deleteSession: (sessionId: string): Promise<boolean> =>
       ipcRenderer.invoke('chat-history:delete', sessionId),
+  },
+  export: {
+    exportConversation: (request: ExportRequest): Promise<ExportResult> =>
+      ipcRenderer.invoke('export:request', request),
+    openDirectory: (dirPath: string): Promise<void> =>
+      ipcRenderer.invoke('export:openDirectory', dirPath),
+    openFile: (filePath: string): Promise<void> =>
+      ipcRenderer.invoke('export:openFile', filePath),
+    onProgress: (callback: (progress: ExportProgress) => void) => {
+      const wrappedCallback = (_: any, progress: ExportProgress) => callback(progress)
+      ;(callback as any)._wrappedCallback = wrappedCallback
+      ipcRenderer.on('export:progress', wrappedCallback)
+    },
+    offProgress: (callback: (progress: ExportProgress) => void) => {
+      const wrappedCallback = (callback as any)._wrappedCallback
+      if (wrappedCallback) {
+        ipcRenderer.off('export:progress', wrappedCallback)
+        delete (callback as any)._wrappedCallback
+      }
+    },
   },
 }
 

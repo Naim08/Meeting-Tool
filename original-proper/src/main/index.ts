@@ -31,6 +31,7 @@ import { setupTranscriptionsHandlers } from "./ipc/transcriptionsHandlers";
 import { meetingSessionManager } from "./services/MeetingSessionManager";
 import { setupMeetingHandlers } from "./ipc/meetingHandlers";
 import { setupChatHistoryHandlers } from "./ipc/chatHistoryHandlers";
+import { registerExportHandlers } from "./ipc/exportHandlers";
 import { completeAllOpenChatSessions } from "./services/ChatHistoryService";
 
 const IS_OSX = process.platform === "darwin";
@@ -287,6 +288,7 @@ app.whenReady().then(() => {
     setupTranscriptionsHandlers();
     setupMeetingHandlers();
     setupChatHistoryHandlers();
+    registerExportHandlers();
     globalThis.transcriptionsEnabled = true;
     console.log("[Main] Transcriptions database initialized.");
   } catch (error) {
