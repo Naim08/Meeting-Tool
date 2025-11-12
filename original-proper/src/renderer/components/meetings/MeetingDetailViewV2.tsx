@@ -1,6 +1,7 @@
 
-import { ArrowLeft, Download, Share2, Mic, Monitor } from "lucide-react";
+import { ArrowLeft, Share2, Mic, Monitor } from "lucide-react";
 import { MeetingDetail } from "./helpers";
+import { MeetingExportButton } from "../MeetingExportButton";
 
 const ConversationBubble = ({ segment, source }: { segment: any, source: any }) => (
   <div className={`flex items-start gap-3 my-4 ${source.type === 'microphone' ? 'flex-row-reverse' : ''}`}>
@@ -35,7 +36,7 @@ export function MeetingDetailViewV2({ meetingDetail, onBack }: { meetingDetail: 
           </p>
         </div>
         <div className="flex space-x-2">
-          <button className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700"><Download size={20} /></button>
+          <MeetingExportButton meetingId={meetingDetail.id} variant="outline" size="sm" />
           <button className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700"><Share2 size={20} /></button>
         </div>
       </header>
