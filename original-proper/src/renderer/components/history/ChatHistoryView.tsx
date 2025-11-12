@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import MessageList from "@/components/message-list";
+import { ExportButton } from "@/components/ExportButton";
 import type {
   ChatMessageRecord,
   ChatSessionRecord,
@@ -288,9 +289,16 @@ export default function ChatHistoryView() {
             ) : (
               <div className="flex h-full flex-col gap-4">
                 <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {selectedSession.session.title ?? "Untitled conversation"}
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {selectedSession.session.title ?? "Untitled conversation"}
+                    </h2>
+                    <ExportButton
+                      sessionId={selectedSession.session.id}
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {formatTimestamp(selectedSession.session.startedAt)} • {formatDuration(selectedSession.session)} • {selectedSession.session.messageCount} messages
                   </p>

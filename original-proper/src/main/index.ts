@@ -32,6 +32,8 @@ import { meetingSessionManager } from "./services/MeetingSessionManager";
 import { setupMeetingHandlers } from "./ipc/meetingHandlers";
 import { setupChatHistoryHandlers } from "./ipc/chatHistoryHandlers";
 import { completeAllOpenChatSessions } from "./services/ChatHistoryService";
+import { setupExportHandlers, cleanupExportHandlers } from "./ipc/exportHandlers";
+import { initAssetRenderer } from "./utils/assetRenderer";
 
 const IS_OSX = process.platform === "darwin";
 
@@ -334,6 +336,22 @@ app.whenReady().then(() => {
 
   window = createWindow();
 
+  // Setup export handlers (requires window)
+  setupExportHandlers(window);
+
+  // Pre-warm asset renderer for faster first export
+  initAssetRenderer().catch((err) => {
+    console.warn("[Main] Failed to pre-initialize asset renderer:", err);
+  });
+
+  // Register export keyboard shortcut (Cmd/Ctrl+Shift+E)
+  const exportShortcut = IS_OSX ? "Cmd+Shift+E" : "Ctrl+Shift+E";
+  globalShortcut.register(exportShortcut, () => {
+    if (window && !window.isDestroyed()) {
+      window.webContents.send("export:shortcut-triggered");
+    }
+  });
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -501,6 +519,8 @@ app.on("before-quit", async () => {
     }
     closeDatabase();
   }
+  // Cleanup export resources
+  cleanupExportHandlers();
 });
 
 process.on("uncaughtException", (error) => {
