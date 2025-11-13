@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin(),  tailwindcss()],
+    plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
         input: {
@@ -31,7 +31,7 @@ export default defineConfig({
         '@': resolve(__dirname, 'src/renderer')
       }
     },
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     build: {
       rollupOptions: {
         input: {
