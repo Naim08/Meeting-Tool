@@ -9,7 +9,6 @@ import {
   PanelLeft,
   Settings,
   MonitorSmartphone,
-  Home,
 } from "lucide-react";
 
 import { TABS } from "@/App";
@@ -342,12 +341,6 @@ export function AppSidebar({
 
   // Primary navigation items
   const primaryItems: NavItem[] = [
-    {
-      title: "Home",
-      action: () => setActiveTab(TABS.HOME),
-      icon: Home,
-      isActive: activeTab === TABS.HOME,
-    },
     {
       title: "Interview Copilot",
       action: () => setActiveTab(TABS.CHAT),

@@ -19,10 +19,8 @@ import type {
   ChatSessionRecord,
 } from "../types/chat-history";
 import ChatHistoryView from "@/components/history/ChatHistoryView";
-import { HomePage } from "@/components/pages/Home";
 
 export const TABS = {
-  HOME: "home",
   CHAT: "chat",
   SETTINGS: "settings",
   MEETINGS: "meetings",
@@ -199,7 +197,7 @@ export const updateMeetingControlledForMicrophoneToggle = (
 export default function Chat() {
   const [isScreenOpen, setIsScreenOpen] = useState(false);
   const [screen, setScreen] = useState(false);
-  const [activeTab, setActiveTab] = useState(TABS.HOME);
+  const [activeTab, setActiveTab] = useState(TABS.CHAT);
   const [screens, setScreens] = useState([]);
   const [audioInputDevices, setAudioInputDevices] = useState([]);
   const [isLoadingScreens, setIsLoadingScreens] = useState(false);
@@ -1373,18 +1371,7 @@ export default function Chat() {
         isMicrophoneRecording={isMicrophoneRecording}
         isMicrophoneRecordingLoading={isMicrophoneRecordingLoading}
       />
-      <SidebarInset className="overflow-y-auto h-svh">
-        {activeTab === TABS.HOME && (
-          <HomePage
-            selectedScreen={screen ? { name: "Selected Screen" } : null}
-            onSelectScreen={() => {
-              getDisplayMedia();
-              setIsScreenOpen(true);
-            }}
-            isMicrophoneRecording={isMicrophoneRecording}
-            isSystemAudioRecording={isSystemAudioRecording}
-          />
-        )}
+      <SidebarInset className="overflow-y-auto">
         {activeTab === TABS.SETTINGS && (
           <Settings
             audioInputDevices={audioInputDevices}
