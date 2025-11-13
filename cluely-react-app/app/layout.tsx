@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import { SupabaseProvider } from "@/context/SupabaseProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,9 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SiteHeader />
-        {children}
-        <SiteFooter />
+        <SupabaseProvider>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+        </SupabaseProvider>
       </body>
     </html>
   );

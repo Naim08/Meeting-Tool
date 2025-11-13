@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useSupabase } from "@/context/SupabaseProvider";
 
 export default function SiteHeader() {
+  const { session, signOut } = useSupabase();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
   return (
     <header className="absolute top-0 z-[9999] w-full pt-2.5">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-b-lg pr-5 text-white md:pr-8">
@@ -22,15 +34,31 @@ export default function SiteHeader() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white transition-colors md:flex focus:underline">
-            Login
-          </Link>
-          <Link href="/signup" className="purple-gradient-button relative inline-flex items-center gap-1.5 overflow-hidden rounded-[10px] px-4 py-2.5 text-sm font-medium text-white">
-            <span className="absolute inset-0 z-20 blur-[1px]" aria-hidden="true">
-              <span className="blurred-border absolute -inset-px z-20 h-full w-full" />
-            </span>
-            <span>Sign Up</span>
-          </Link>
+          {session ? (
+            <>
+              <span className="hidden items-center text-sm text-white/80 md:flex">
+                {session.user.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="hidden items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white transition-colors md:flex focus:underline hover:text-white/80"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="hidden items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white transition-colors md:flex focus:underline">
+                Login
+              </Link>
+              <Link href="/signup" className="purple-gradient-button relative inline-flex items-center gap-1.5 overflow-hidden rounded-[10px] px-4 py-2.5 text-sm font-medium text-white">
+                <span className="absolute inset-0 z-20 blur-[1px]" aria-hidden="true">
+                  <span className="blurred-border absolute -inset-px z-20 h-full w-full" />
+                </span>
+                <span>Sign Up</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type Database = Record<string, never>; // Replace with typed schema when available.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Database = Record<string, any>; // Replace with typed schema when available.
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_DB2_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_DB2_ANON_KEY;
