@@ -1,327 +1,272 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
-import MessageList from "@/components/message-list";
-import { ExportButton } from "@/components/ExportButton";
-import type {
-  ChatMessageRecord,
-  ChatSessionRecord,
-  ChatSessionWithMessages,
-} from "../../../types/chat-history";
-
-const formatTimestamp = (value: number | null | undefined) => {
-  if (!value) return "—";
-  return new Date(value).toLocaleString();
-};
-
-const formatDuration = (session: ChatSessionRecord) => {
-  if (!session.endedAt) return "In progress";
-  const durationMs = session.endedAt - session.startedAt;
-  if (durationMs <= 0) return "Less than a minute";
-  const minutes = Math.floor(durationMs / 60000);
-  if (minutes < 1) {
-    const seconds = Math.floor(durationMs / 1000);
-    return `${seconds}s`;
-  }
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
-};
+import { useState } from 'react'
+import {
+  Search,
+  History as HistoryIcon,
+  Trash2,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useChatHistory } from '@/hooks/useChatHistory'
+import { useDebounce } from '@/hooks/useDebounce'
+import { ConversationCard } from './ConversationCard'
+import { HistoryDetail } from './HistoryDetail'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 export default function ChatHistoryView() {
-  const [sessions, setSessions] = useState<ChatSessionRecord[]>([]);
-  const [selectedSession, setSelectedSession] =
-    useState<ChatSessionWithMessages | null>(null);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const {
+    filteredSessions,
+    selectedSession,
+    isLoadingSessions,
+    isLoadingDetails,
+    isDeletingSession,
+    error,
+    searchQuery,
+    setSearchQuery,
+    selectSession,
+    clearSelection,
+    deleteSession,
+    deleteAllSessions,
+    refreshSessions,
+    totalLoaded,
+  } = useChatHistory({ autoLoad: true, initialLimit: 100 })
 
-  const loadSessions = useCallback(async () => {
-    if (!window.api?.chatHistory?.listSessions) {
-      setError("Chat history is unavailable in this build.");
-      setIsLoadingSessions(false);
-      return;
-    }
-    setIsLoadingSessions(true);
-    setError(null);
-    try {
-      const result = await window.api.chatHistory.listSessions({
-        limit: 50,
-        offset: 0,
-      });
-      setSessions(result ?? []);
-    } catch (err) {
-      console.error("[Renderer] Failed to load chat sessions:", err);
-      setError("Unable to load chat history.");
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  }, []);
+  const [localSearchQuery, setLocalSearchQuery] = useState('')
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false)
 
-  useEffect(() => {
-    void loadSessions();
-  }, [loadSessions]);
+  // Debounce the search query
+  const debouncedSearchQuery = useDebounce(localSearchQuery, 300)
 
-  const handleSelectSession = useCallback(
-    async (sessionId: string) => {
-      if (!window.api?.chatHistory?.getSession) {
-        return;
-      }
-      setIsLoadingDetails(true);
-      setError(null);
-      try {
-        const fullSession =
-          (await window.api.chatHistory.getSession(sessionId)) ?? null;
-        setSelectedSession(fullSession);
-      } catch (err) {
-        console.error("[Renderer] Failed to load chat session details:", err);
-        setError("Unable to load conversation details.");
-      } finally {
-        setIsLoadingDetails(false);
-      }
-    },
-    []
-  );
+  // Update the actual search query when debounced value changes
+  useState(() => {
+    setSearchQuery(debouncedSearchQuery)
+  })
 
-  const sortedSessions = useMemo(() => {
-    return [...sessions].sort((a, b) => b.startedAt - a.startedAt);
-  }, [sessions]);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setLocalSearchQuery(value)
+    setSearchQuery(value) // Immediate update for responsiveness
+  }
 
-  const messages = selectedSession?.messages ?? [];
-  const isDetailMode = Boolean(selectedSession);
+  const handleDeleteAll = async () => {
+    await deleteAllSessions()
+    setShowDeleteAllDialog(false)
+  }
 
-  const formattedMessages = useMemo(() => {
-    if (!messages.length) return [];
-    return messages
-      .filter((message) => message.role === "user" || message.role === "assistant")
-      .map((message) => {
-        let attachmentMeta: unknown = undefined;
-        if (message.attachmentMeta) {
-          try {
-            attachmentMeta = JSON.parse(message.attachmentMeta);
-          } catch (err) {
-            console.warn("[Renderer] Failed to parse attachment meta", err);
-          }
-        }
-        let rawMeta: unknown = undefined;
-        if (message.rawJson) {
-          try {
-            rawMeta = JSON.parse(message.rawJson);
-          } catch (err) {
-            console.warn("[Renderer] Failed to parse message rawJson", err);
-          }
-        }
-        const combinedData: Record<string, unknown> = {};
-        if (attachmentMeta && typeof attachmentMeta === "object") {
-          Object.assign(combinedData, attachmentMeta as Record<string, unknown>);
-        }
-        if (rawMeta && typeof rawMeta === "object" && !Array.isArray(rawMeta)) {
-          const metaRecord = rawMeta as Record<string, unknown>;
-          if (metaRecord.comparisonSlot) {
-            combinedData.comparisonSlot = metaRecord.comparisonSlot;
-          }
-          if (metaRecord.comparisonLabel) {
-            combinedData.comparisonLabel = metaRecord.comparisonLabel;
-          } else if (metaRecord.modelId) {
-            combinedData.comparisonLabel = metaRecord.modelId;
-          }
-          if (metaRecord.modelId) {
-            combinedData.comparisonModelId = metaRecord.modelId;
-          }
-        }
-        return {
-          id: message.id,
-          role: message.role,
-          content: message.content,
-          data:
-            Object.keys(combinedData).length > 0 ? combinedData : undefined,
-        };
-      });
-  }, [messages]);
-
-  const handleDeleteSession = useCallback(
-    async (sessionId: string) => {
-      if (!window.api?.chatHistory?.deleteSession) {
-        return;
-      }
-      setDeletingSessionId(sessionId);
-      setError(null);
-      try {
-        await window.api.chatHistory.deleteSession(sessionId);
-        if (selectedSession?.session.id === sessionId) {
-          setSelectedSession(null);
-        }
-        await loadSessions();
-      } catch (err) {
-        console.error("[Renderer] Failed to delete chat session:", err);
-        setError("Unable to delete conversation.");
-      } finally {
-        setDeletingSessionId(null);
-      }
-    },
-    [loadSessions, selectedSession?.session.id]
-  );
+  // Show detail view if a session is selected
+  if (selectedSession) {
+    return (
+      <HistoryDetail
+        session={selectedSession}
+        onBack={clearSelection}
+        onDelete={() => deleteSession(selectedSession.session.id)}
+        isDeleting={isDeletingSession}
+        className="h-full"
+      />
+    )
+  }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col overflow-y-auto bg-gradient-to-b from-background via-background to-background text-foreground">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8">
-        <header className="space-y-2">
-          <div className="flex items-center gap-3">
-            {isDetailMode && (
-              <button
-                type="button"
-                onClick={() => setSelectedSession(null)}
-                className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-card/80 px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-              >
-                ← Back
-              </button>
-            )}
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight">Chat History</h1>
-              <p className="text-sm text-muted-foreground">
-                Review previous assistant conversations and pick up where you left off.
-              </p>
-            </div>
+    <div className="flex h-full flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+            <HistoryIcon className="h-5 w-5 text-blue-400" />
           </div>
-        </header>
-
-        {error && (
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
+          <div>
+            <h1 className="text-xl font-semibold text-white">Chat History</h1>
+            <p className="text-sm text-zinc-400">
+              Review and resume previous conversations
+            </p>
           </div>
-        )}
-
-        <div
-          className={`flex flex-1 flex-col gap-6 ${
-            isDetailMode
-              ? ""
-              : "lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start"
-          }`}
-        >
-          {!isDetailMode && (
-            <aside className="space-y-4">
-              <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                Conversations
-              </h2>
-              <button
-                type="button"
-                onClick={() => loadSessions()}
-                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-              >
-                Refresh
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {isLoadingSessions ? (
-                <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/80 text-sm text-muted-foreground">
-                  Loading chat history…
-                </div>
-              ) : sortedSessions.length === 0 ? (
-                <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/80 text-sm text-muted-foreground">
-                  No conversations yet. Start chatting to build your history.
-                </div>
-              ) : (
-                sortedSessions.map((session) => {
-                  const isActive = selectedSession?.session.id === session.id;
-                  const isDeleting = deletingSessionId === session.id;
-                  return (
-                    <div
-                      key={session.id}
-                      className={`group flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
-                        isActive
-                          ? "border-primary/60 bg-primary/5 shadow"
-                          : "border-border/60 bg-card/80 hover:border-primary/40 hover:shadow-md"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleSelectSession(session.id)}
-                        className="flex-1 text-left"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center justify-between text-sm font-medium text-foreground">
-                            <span>{session.title ?? "Untitled conversation"}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDuration(session)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Started {formatTimestamp(session.startedAt)}
-                          </div>
-                          {session.lastMessagePreview && (
-                            <div className="text-xs text-muted-foreground line-clamp-2">
-                              {session.lastMessagePreview}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteSession(session.id);
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-card/70 text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
-                        title="Delete conversation"
-                        disabled={isDeleting}
-                      >
-                        <Trash2 className={`h-4 w-4 ${isDeleting ? "animate-spin" : ""}`} />
-                      </button>
-                    </div>
-                  );
-                })
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="blue-subtle" size="lg">
+            {totalLoaded} conversations
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshSessions}
+            disabled={isLoadingSessions}
+            className="border-white/10 hover:border-blue-500/50"
+          >
+            <RefreshCw
+              className={cn(
+                'h-4 w-4 mr-2',
+                isLoadingSessions && 'animate-spin'
               )}
-            </div>
-          </aside>
+            />
+            Refresh
+          </Button>
+          {filteredSessions.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteAllDialog(true)}
+              className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete All
+            </Button>
           )}
-
-          <section className="min-h-[26rem] rounded-2xl border border-border/60 bg-card/95 p-6 shadow">
-            {isLoadingDetails ? (
-              <div className="flex h-full min-h-[20rem] items-center justify-center text-sm text-muted-foreground">
-                Loading conversation…
-              </div>
-            ) : !selectedSession ? (
-              <div className="flex h-full min-h-[20rem] items-center justify-center text-sm text-muted-foreground">
-                Select a conversation to view its messages.
-              </div>
-            ) : (
-              <div className="flex h-full flex-col gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-foreground">
-                      {selectedSession.session.title ?? "Untitled conversation"}
-                    </h2>
-                    <ExportButton
-                      sessionId={selectedSession.session.id}
-                      variant="outline"
-                      size="sm"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTimestamp(selectedSession.session.startedAt)} • {formatDuration(selectedSession.session)} • {selectedSession.session.messageCount} messages
-                  </p>
-                  {selectedSession.session.lastMessagePreview && (
-                    <p className="text-xs text-muted-foreground">
-                      Last message: {selectedSession.session.lastMessagePreview}
-                    </p>
-                  )}
-                </div>
-                <div className="flex-1 overflow-y-auto rounded-xl border border-border/50 bg-background/70 p-4">
-                  {formattedMessages.length === 0 ? (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                      No messages recorded in this conversation.
-                    </div>
-                  ) : (
-                    <MessageList messages={formattedMessages} isLoading={false} />
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <div className="px-6 py-4 border-b border-white/10">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={localSearchQuery}
+            onChange={handleSearchChange}
+            className="w-full rounded-lg border border-white/10 bg-zinc-800 px-10 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+          />
+          {localSearchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setLocalSearchQuery('')
+                setSearchQuery('')
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {localSearchQuery && (
+          <p className="mt-2 text-xs text-zinc-500">
+            Found {filteredSessions.length} conversation
+            {filteredSessions.length !== 1 ? 's' : ''} matching "{localSearchQuery}"
+          </p>
+        )}
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {isLoadingSessions ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-lg border border-white/10 bg-zinc-900 p-4"
+              >
+                <div className="h-5 w-3/4 rounded bg-zinc-800 mb-3" />
+                <div className="h-4 w-full rounded bg-zinc-800 mb-2" />
+                <div className="h-4 w-2/3 rounded bg-zinc-800 mb-3" />
+                <div className="flex gap-2">
+                  <div className="h-5 w-20 rounded bg-zinc-800" />
+                  <div className="h-5 w-24 rounded bg-zinc-800" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/10 bg-zinc-900/50 p-8">
+            <HistoryIcon className="h-12 w-12 text-zinc-600" />
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-zinc-400">
+                {localSearchQuery
+                  ? 'No matching conversations'
+                  : 'No conversations yet'}
+              </h3>
+              <p className="text-sm text-zinc-500 mt-1">
+                {localSearchQuery
+                  ? 'Try adjusting your search query'
+                  : 'Start chatting to build your history'}
+              </p>
+            </div>
+            {localSearchQuery && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLocalSearchQuery('')
+                  setSearchQuery('')
+                }}
+                className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+              >
+                Clear search
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSessions.map((session) => (
+              <ConversationCard
+                key={session.id}
+                session={session}
+                isActive={false}
+                isDeleting={isDeletingSession}
+                onClick={() => selectSession(session.id)}
+                onDelete={() => deleteSession(session.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete All Confirmation Dialog */}
+      <Dialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <DialogContent className="bg-zinc-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete All Conversations</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Are you sure you want to delete all {filteredSessions.length}{' '}
+              conversation{filteredSessions.length !== 1 ? 's' : ''}? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteAllDialog(false)}
+              className="border-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={isDeletingSession}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeletingSession ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete All
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }
