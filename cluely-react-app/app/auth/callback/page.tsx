@@ -156,8 +156,8 @@ export default function AuthCallbackPage() {
           }
         }
 
-        // Success! Redirect to home
-        router.push('/');
+        // Success! Redirect to dashboard
+        router.push('/dashboard');
       } catch (err) {
         console.error('OAuth callback error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Authentication failed';

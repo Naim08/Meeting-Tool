@@ -18,7 +18,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && session) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [session, loading, router]);
 
@@ -68,10 +68,10 @@ export default function LoginPage() {
       if (signInError) throw signInError;
 
       setInfo('Logged in successfully! Redirecting...');
-      
+
       // Redirect after short delay
       setTimeout(() => {
-        router.push('/');
+        router.push('/dashboard');
       }, 1000);
 
     } catch (authError: unknown) {
