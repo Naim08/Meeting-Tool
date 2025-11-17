@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client with service role key for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_DB2_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
-
 export async function POST(request: NextRequest) {
   try {
     // Get the Authorization header
@@ -24,10 +12,17 @@ export async function POST(request: NextRequest) {
     // Extract JWT token
     const token = authHeader.replace('Bearer ', '');
 
-    // Create a Supabase client to verify the user
+    // Create a Supabase client with user's JWT (RLS will handle permissions)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_DB2_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_DB2_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_DB2_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
     );
 
     // Verify the JWT and get user
@@ -61,8 +56,8 @@ export async function POST(request: NextRequest) {
     // Calculate token expiry (typically 1 hour from now for Google tokens)
     const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
 
-    // Upsert the calendar account
-    const { error: upsertError } = await supabaseAdmin
+    // Upsert the calendar account (RLS allows user to insert/update their own record)
+    const { error: upsertError } = await supabase
       .from('google_calendar_accounts')
       .upsert(
         {

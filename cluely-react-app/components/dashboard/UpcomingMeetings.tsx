@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSupabase } from '@/context/SupabaseProvider';
 import type { CalendarEvent, GoogleCalendarAccount } from '@/lib/google-calendar';
 import { formatRelativeTime } from '@/lib/google-calendar';
-import { MeetingCard } from './MeetingCard';
+import { MeetingCardWithBrief } from './MeetingCardWithBrief';
 
 export function UpcomingMeetings() {
   const { supabase, session } = useSupabase();
@@ -310,7 +310,7 @@ export function UpcomingMeetings() {
       {/* Events grid */}
       <div className="grid gap-4">
         {events.map((event) => (
-          <MeetingCard key={event.id} event={event} />
+          <MeetingCardWithBrief key={event.id} event={event} />
         ))}
       </div>
     </div>
