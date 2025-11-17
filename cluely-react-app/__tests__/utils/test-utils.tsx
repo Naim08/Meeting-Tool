@@ -70,35 +70,34 @@ export const mockCalendarEvents = [
     user_id: 'mock-user-id',
     source: 'google_calendar',
     external_event_id: 'google-event-1',
+    google_calendar_id: 'primary',
+    status: 'confirmed',
     start_time: new Date(Date.now() + 3600000).toISOString(), // 1 hour from now
     end_time: new Date(Date.now() + 5400000).toISOString(), // 1.5 hours from now
+    is_all_day: false,
     summary: 'Team Standup',
     description: 'Daily standup meeting',
     location: null,
     hangout_link: 'https://meet.google.com/abc-defg-hij',
-    attendees: JSON.stringify([
-      { email: 'test@example.com', responseStatus: 'accepted' },
-    ]),
+    last_updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
   },
   {
     id: 'event-2',
     user_id: 'mock-user-id',
     source: 'google_calendar',
     external_event_id: 'google-event-2',
+    google_calendar_id: 'primary',
+    status: 'confirmed',
     start_time: new Date(Date.now() + 86400000).toISOString(), // 1 day from now
     end_time: new Date(Date.now() + 90000000).toISOString(), // 1 day + 1 hour from now
+    is_all_day: false,
     summary: 'Client Meeting',
     description: 'Quarterly review with client',
     location: 'Conference Room A',
     hangout_link: null,
-    attendees: JSON.stringify([
-      { email: 'test@example.com', responseStatus: 'accepted' },
-      { email: 'client@example.com', responseStatus: 'accepted' },
-    ]),
+    last_updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
   },
 ];
 

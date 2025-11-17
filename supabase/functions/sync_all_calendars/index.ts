@@ -90,30 +90,43 @@ async function syncUserCalendar(
     }
 
     // Fetch calendar events from Google Calendar API
-    const windowDays = 7; // Fetch events for the next 7 days
+    const windowDays = 14; // Fetch events for the next 14 days
     const timeMin = new Date().toISOString();
     const timeMax = new Date(Date.now() + windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const calendarUrl = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
-    calendarUrl.searchParams.set('timeMin', timeMin);
-    calendarUrl.searchParams.set('timeMax', timeMax);
-    calendarUrl.searchParams.set('singleEvents', 'true');
-    calendarUrl.searchParams.set('orderBy', 'startTime');
-    calendarUrl.searchParams.set('maxResults', '100');
+    // Fetch all events with pagination support
+    const events: CalendarEvent[] = [];
+    let nextPageToken: string | undefined;
 
-    const calendarResponse = await fetch(calendarUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    do {
+      const calendarUrl = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+      calendarUrl.searchParams.set('timeMin', timeMin);
+      calendarUrl.searchParams.set('timeMax', timeMax);
+      calendarUrl.searchParams.set('singleEvents', 'true');
+      calendarUrl.searchParams.set('orderBy', 'startTime');
+      calendarUrl.searchParams.set('maxResults', '250'); // Max allowed by Google API
 
-    if (!calendarResponse.ok) {
-      console.error(`Calendar API error for user ${userId}:`, await calendarResponse.text());
-      return { success: false, eventsUpserted: 0, error: 'Calendar API error' };
-    }
+      if (nextPageToken) {
+        calendarUrl.searchParams.set('pageToken', nextPageToken);
+      }
 
-    const calendarData = await calendarResponse.json();
-    const events: CalendarEvent[] = calendarData.items || [];
+      const calendarResponse = await fetch(calendarUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!calendarResponse.ok) {
+        console.error(`Calendar API error for user ${userId}:`, await calendarResponse.text());
+        return { success: false, eventsUpserted: 0, error: 'Calendar API error' };
+      }
+
+      const calendarData = await calendarResponse.json();
+      const pageEvents: CalendarEvent[] = calendarData.items || [];
+      events.push(...pageEvents);
+
+      nextPageToken = calendarData.nextPageToken;
+    } while (nextPageToken);
 
     // Upsert events into the database
     let upserted = 0;
@@ -127,13 +140,14 @@ async function syncUserCalendar(
       const isAllDay = !event.start?.dateTime;
       const startTime = event.start?.dateTime || event.start?.date;
       const endTime = event.end?.dateTime || event.end?.date || startTime;
+      const status = event.status || 'confirmed';
 
       const eventData = {
         user_id: userId,
         source: 'google_calendar',
         external_event_id: event.id,
         google_calendar_id: 'primary',
-        status: event.status || 'confirmed',
+        status,
         summary: event.summary || null,
         description: event.description || null,
         start_time: startTime,

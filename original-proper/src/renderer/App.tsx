@@ -5,6 +5,7 @@ import { getServerRoot } from "@/lib/utils";
 import ScreenPickerDialog from "@/components/screen-picker-dialog";
 import { createClient } from "@supabase/supabase-js";
 import { useSupabase } from "@/supabase-provider";
+import { supabaseDb2 } from "@/supabase-db2-client";
 import Landing from "@/components/landing";
 import useTranscription from "@/hooks/useTranscription";
 import useTranscriptionManager from "@/hooks/useTranscriptionManager";
@@ -884,12 +885,29 @@ export default function Chat() {
           break;
         case "auth.callback":
           try {
-            const { data, error } = await supabase.auth.setSession({
+            // Set session for DB1 (existing behavior)
+            const { data: db1Data, error: db1Error } = await supabase.auth.setSession({
               access_token: message.value?.access_token,
               refresh_token: message.value?.refresh_token,
             });
-            if (error) {
-              console.error(error);
+            if (db1Error) {
+              console.error("DB1 auth callback error:", db1Error);
+            }
+
+            // Also set session for DB2 (calendar/auth source of truth)
+            // Check if tokens are for DB2 by trying to set the session
+            try {
+              const { data: db2Data, error: db2Error } = await supabaseDb2.auth.setSession({
+                access_token: message.value?.access_token,
+                refresh_token: message.value?.refresh_token,
+              });
+              if (db2Error) {
+                console.error("DB2 auth callback error:", db2Error);
+              } else if (db2Data?.session) {
+                console.log("DB2 session set successfully:", db2Data.session.user?.email);
+              }
+            } catch (db2Err) {
+              console.error("DB2 auth callback exception:", db2Err);
             }
           } catch (e) {
             console.error(e);

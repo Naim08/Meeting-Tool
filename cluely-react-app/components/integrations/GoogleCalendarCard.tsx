@@ -89,12 +89,18 @@ export function GoogleCalendarCard() {
     setDisconnecting(true);
 
     try {
+      // Get access token from session
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.access_token) {
+        throw new Error('No valid session');
+      }
+
       const response = await fetch('/api/integrations/google-calendar/disconnect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentSession.access_token}`,
         },
-        credentials: 'include', // Include cookies for authentication
       });
 
       if (!response.ok) {
@@ -119,12 +125,18 @@ export function GoogleCalendarCard() {
     setSyncing(true);
 
     try {
+      // Get access token from session
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.access_token) {
+        throw new Error('No valid session');
+      }
+
       const response = await fetch('/api/integrations/google-calendar/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentSession.access_token}`,
         },
-        credentials: 'include', // Include cookies for authentication
       });
 
       if (!response.ok) {
