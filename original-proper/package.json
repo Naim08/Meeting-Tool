@@ -91,6 +91,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/coverage-v8": "^4.0.8",
     "electron": "^28.3.3",
+    "electron-rebuild": "^3.2.9",
     "electron-vite": "^2.3.0",
     "jsdom": "^27.1.0",
     "typescript": "^5.9.3",
