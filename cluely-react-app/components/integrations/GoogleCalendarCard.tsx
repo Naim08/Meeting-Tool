@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useSupabase } from '@/context/SupabaseProvider';
 import type { GoogleCalendarAccount } from '@/lib/google-calendar';
 import { formatRelativeTime } from '@/lib/google-calendar';
+import { useGoogleFeatureFlags } from '@/hooks/useFeatureFlags';
 
 export function GoogleCalendarCard() {
   const { supabase, session } = useSupabase();
+  const { flags: featureFlags, loading: flagsLoading } = useGoogleFeatureFlags();
   const [calendarAccount, setCalendarAccount] = useState<GoogleCalendarAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -164,11 +166,47 @@ export function GoogleCalendarCard() {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || flagsLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Feature disabled state
+  if (!featureFlags.calendarSyncEnabled) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-start gap-4">
+          {/* Calendar Icon */}
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Google Calendar</h3>
+            <p className="text-sm text-gray-500">
+              Calendar sync is temporarily unavailable. Your existing calendar connection will resume syncing when this feature is re-enabled.
+            </p>
+          </div>
         </div>
       </div>
     );

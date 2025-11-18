@@ -1,22 +1,83 @@
 {
-  "name": "InterviewSolver",
+  "name": "InterviewCopilot",
   "version": "1.0.11",
-  "description": "",
+  "description": "AI-powered interview preparation assistant",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://interviewsolver.com",
+  "author": "Interview Copilot <support@interviewcopilot.app>",
+  "homepage": "https://interviewcopilot.app",
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build": "electron-vite build && yarn build:asar && yarn build:app",
     "build:vite": "electron-vite build",
-    "build:asar": "npx @electron/asar pack . ../builds/FixedApp.asar --unpack '*.{node,dylib}'",
-    "build:app": "cd ../builds && rm -rf FixedApp.app && cp -R /Applications/InterviewSolver.app FixedApp.app && cp FixedApp.asar FixedApp.app/Contents/Resources/app.asar && cp -R FixedApp.asar.unpacked FixedApp.app/Contents/Resources/ && sudo xattr -cr FixedApp.app && sudo codesign --force --deep --sign - FixedApp.app",
-    "open": "open ../builds/FixedApp.app",
+    "build:asar": "npx @electron/asar pack . ../builds/InterviewCopilot.asar --unpack '*.{node,dylib}'",
+    "build:app": "cd ../builds && rm -rf InterviewCopilot.app && cp -R /Applications/InterviewCopilot.app InterviewCopilot.app && cp InterviewCopilot.asar InterviewCopilot.app/Contents/Resources/app.asar && cp -R InterviewCopilot.asar.unpacked InterviewCopilot.app/Contents/Resources/ && sudo xattr -cr InterviewCopilot.app && sudo codesign --force --deep --sign \"Developer ID Application: Md Miah (UJ2X7H6A7E)\" InterviewCopilot.app",
+    "open": "open ../builds/InterviewCopilot.app",
     "kill": "pkill -f 'electron' || true",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "dist": "electron-vite build && electron-builder --mac",
+    "dist:dmg": "electron-vite build && electron-builder --mac dmg",
+    "dist:zip": "electron-vite build && electron-builder --mac zip"
+  },
+  "build": {
+    "appId": "com.interviewcopilot.app",
+    "productName": "Interview Copilot",
+    "directories": {
+      "output": "../builds/dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icons/icon-1024.png",
+      "identity": "Md Miah (UJ2X7H6A7E)",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "node_modules/@img/sharp-libvips-darwin-arm64/lib",
+        "to": "sharp-libvips",
+        "filter": [
+          "*.dylib"
+        ]
+      },
+      {
+        "from": "node_modules/better-sqlite3/build/Release",
+        "to": "better-sqlite3",
+        "filter": [
+          "*.node"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/sharp-libvips-darwin-arm64/**/*"
+    ]
   },
   "dependencies": {
     "@deepgram/sdk": "^3.13.0",
@@ -91,6 +152,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/coverage-v8": "^4.0.8",
     "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "electron-vite": "^2.3.0",
     "jsdom": "^27.1.0",

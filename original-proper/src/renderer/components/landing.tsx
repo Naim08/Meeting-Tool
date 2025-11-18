@@ -129,7 +129,7 @@ const Landing = ({
 
         <div className="relative z-10 flex flex-col items-center text-center gap-6">
           <h1 className="font-display text-4xl font-medium tracking-tight text-white sm:text-5xl">
-            Interview Solver
+            Interview Copilot
           </h1>
           <div className="gradient-divider"></div>
           <p className="max-w-2xl font-forma text-base leading-relaxed text-slate-200/90 sm:text-lg">
@@ -144,7 +144,7 @@ const Landing = ({
                     Screen Recording Permission
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                    Interview Solver needs to capture your screen. Grant access and restart the app if prompted.
+                    Interview Copilot needs to capture your screen. Grant access and restart the app if prompted.
                   </p>
                 </div>
                 <button
@@ -176,7 +176,7 @@ const Landing = ({
                     No Active Subscription
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                    Choose a plan to unlock the full Interview Solver experience.
+                    Choose a plan to unlock the full Interview Copilot experience.
                   </p>
                 </div>
 
@@ -213,7 +213,7 @@ const Landing = ({
                     <p className="mt-2 text-sm leading-relaxed text-slate-600">
                       {trialStarted && (trialEnded || trialMessageCount <= 0)
                         ? "Your free trial has ended."
-                        : `Explore Interview Solver with ${MAX_TRIAL_MESSAGES.toLocaleString()} complimentary messages.`}
+                        : `Explore Interview Copilot with ${MAX_TRIAL_MESSAGES.toLocaleString()} complimentary messages.`}
                     </p>
                   </div>
                   <div className="flex-shrink-0">

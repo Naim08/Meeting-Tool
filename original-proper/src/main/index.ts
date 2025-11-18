@@ -210,7 +210,7 @@ function createWindow() {
   }
 
   const filter = {
-    urls: ["http://localhost/interviewSolverCallback*"],
+    urls: ["http://localhost/interviewCopilotCallback*"],
   };
 
   mainWindow?.webContents?.session?.webRequest.onBeforeRequest(
@@ -219,8 +219,8 @@ function createWindow() {
       try {
         // Replace hash with query string for easier parsing
         const parsedUrl = url.replace(
-          "http://localhost/interviewSolverCallback#",
-          "http://localhost/interviewSolverCallback?"
+          "http://localhost/interviewCopilotCallback#",
+          "http://localhost/interviewCopilotCallback?"
         );
         const urlParts = new URL(parsedUrl);
 

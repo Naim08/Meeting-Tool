@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isGoogleCalendarSyncEnabled } from '@/lib/featureFlagsServer';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Google Calendar sync feature is enabled
+    const isEnabled = await isGoogleCalendarSyncEnabled();
+    if (!isEnabled) {
+      return NextResponse.json(
+        { error: 'Calendar sync is temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Get the Authorization header (from cookie or header)
     let token = request.headers.get('Authorization')?.replace('Bearer ', '');
     let session = null;

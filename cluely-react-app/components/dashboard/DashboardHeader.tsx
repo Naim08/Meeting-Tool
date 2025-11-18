@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/context/SupabaseProvider';
+import { PlanBadge } from './PlanBadge';
 
 export function DashboardHeader() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export function DashboardHeader() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
+              <PlanBadge />
               {session?.user?.email && (
                 <span className="text-sm text-gray-600 hidden sm:inline">
                   {session.user.email}

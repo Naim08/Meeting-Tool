@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isGoogleCalendarSyncEnabled } from '@/lib/featureFlagsServer';
 
 // Initialize Supabase client with service role key for admin operations
 const supabaseAdmin = createClient(
@@ -15,6 +16,13 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Google Calendar sync feature is enabled
+    // Note: We allow disconnect even when feature is disabled to let users remove stale connections
+    const isEnabled = await isGoogleCalendarSyncEnabled();
+    if (!isEnabled) {
+      console.log('Google Calendar sync disabled, but allowing disconnect operation');
+    }
+
     // Get the Authorization header (from cookie or header)
     let token = request.headers.get('Authorization')?.replace('Bearer ', '');
 

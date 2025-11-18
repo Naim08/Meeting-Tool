@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useSupabase } from "@/context/SupabaseProvider";
 
 export default function SiteHeader() {
-  const { session, signOut } = useSupabase();
+  const { session, loading, signOut } = useSupabase();
 
   const handleSignOut = async () => {
     try {
@@ -34,7 +34,13 @@ export default function SiteHeader() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          {session ? (
+          {loading ? (
+            /* Skeleton placeholder while auth state is loading */
+            <div className="hidden items-center gap-3 md:flex">
+              <div className="h-4 w-32 animate-pulse rounded bg-white/20" />
+              <div className="h-8 w-20 animate-pulse rounded-md bg-white/20" />
+            </div>
+          ) : session ? (
             <>
               <span className="hidden items-center text-sm text-white/80 md:flex">
                 {session.user.email}
