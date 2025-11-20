@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'node', // Use node for main process tests
     include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
     exclude: ['node_modules', 'out', 'dist'],
+    setupFiles: ['src/__tests__/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

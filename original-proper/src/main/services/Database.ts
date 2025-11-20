@@ -98,6 +98,25 @@ export function initializeDatabase() {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS unified_transcriptions (
+      id TEXT PRIMARY KEY,
+      session_id TEXT UNIQUE NOT NULL,
+      meeting_id TEXT,
+      microphone_transcription_id TEXT,
+      system_audio_transcription_id TEXT,
+      speaker_mapping TEXT,
+      started_at INTEGER NOT NULL,
+      ended_at INTEGER,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (meeting_id) REFERENCES meeting_sessions(id) ON DELETE SET NULL,
+      FOREIGN KEY (microphone_transcription_id) REFERENCES transcriptions(id) ON DELETE SET NULL,
+      FOREIGN KEY (system_audio_transcription_id) REFERENCES transcriptions(id) ON DELETE SET NULL
+    );
+  `);
+
   const ensureColumn = (table: string, column: string, definition: string) => {
     const pragmaStmt = db.prepare(`PRAGMA table_info(${table})`);
     const columns = pragmaStmt.all() as Array<{ name: string }>;
@@ -122,6 +141,10 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_speaker_segments_transcription_id ON speaker_segments(transcription_id);
     CREATE INDEX IF NOT EXISTS idx_speaker_segments_meeting_id ON speaker_segments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_active_sessions_meeting_id ON active_sessions(meeting_id);
+    CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_session_id ON unified_transcriptions(session_id);
+    CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_status ON unified_transcriptions(status);
+    CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_meeting_id ON unified_transcriptions(meeting_id);
+    CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_started_at ON unified_transcriptions(started_at DESC);
   `);
 
   db.exec(`

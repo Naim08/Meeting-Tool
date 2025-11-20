@@ -20,7 +20,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/preload/index.ts')
+          index: resolve(__dirname, 'src/preload/index.ts'),
+          'transcript-window-preload': resolve(__dirname, 'src/preload/transcript-window-preload.ts')
         }
       }
     }
@@ -35,7 +36,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/renderer/index.html')
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          floating: resolve(__dirname, 'src/renderer/floating.html')
         }
       }
     },

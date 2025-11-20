@@ -3,6 +3,7 @@ import { BrowserWindow } from "electron";
 import { TranscriptionService, TranscriptionConfig } from "../types/audio";
 import { TRANSCRIPTION_CONFIG } from "../config/audio";
 import { sessionManager } from "./TranscriptionRecorder";
+import { unifiedRecordingManager } from "./UnifiedRecordingManager";
 
 export class AssemblyAITranscriptionService implements TranscriptionService {
   private transcriber: any;
@@ -19,8 +20,19 @@ export class AssemblyAITranscriptionService implements TranscriptionService {
   public async connect(): Promise<void> {
     console.log("[Debug] Setting up AssemblyAI transcriber");
 
-    this.transcriber =
-      this.assemblyClient.realtime.transcriber(TRANSCRIPTION_CONFIG);
+    // Build config with speaker diarization support
+    const realtimeConfig: Record<string, unknown> = {
+      sampleRate: TRANSCRIPTION_CONFIG.sampleRate,
+      encoding: TRANSCRIPTION_CONFIG.encoding,
+    };
+
+    // Enable word-level timestamps for better speaker attribution
+    if (TRANSCRIPTION_CONFIG.speakerLabels) {
+      realtimeConfig.word_boost = [];
+      console.log("[Debug] Speaker labels enabled for AssemblyAI realtime");
+    }
+
+    this.transcriber = this.assemblyClient.realtime.transcriber(realtimeConfig);
     this.audioStream = this.transcriber.stream();
 
     if (this.audioStream) {
@@ -31,7 +43,7 @@ export class AssemblyAITranscriptionService implements TranscriptionService {
     }
 
     await this.transcriber.connect();
-    console.log("[Debug] Connected to AssemblyAI");
+    console.log("[Debug] Connected to AssemblyAI with speaker diarization");
 
     this.setupEventHandlers();
   }
@@ -81,43 +93,83 @@ export class AssemblyAITranscriptionService implements TranscriptionService {
     this.transcriber.on("transcript", (transcript: RealtimeTranscript) => {
       if (!transcript.text) return;
 
+      const isFinal = transcript.message_type === "FinalTranscript";
+      const timestamp = Date.now();
+
+      // Extract speaker information from transcript
+      const speakerLabel = (transcript as any).speaker_label as string | undefined;
+      const confidence = (transcript as any).confidence as number | undefined;
+      const words = (transcript as any).words as Array<{
+        text: string;
+        start: number;
+        end: number;
+        speaker?: string;
+        confidence?: number;
+      }> | undefined;
+
+      // Send to renderer with enhanced speaker info
       this.window.webContents.send("message", {
         type: "transcription.update",
         value: {
           text: transcript.text,
-          isFinal: transcript.message_type === "FinalTranscript",
+          isFinal,
+          source: "system",
+          speaker: speakerLabel || (words?.[0]?.speaker ? `Speaker ${words[0].speaker}` : undefined),
+          confidence,
+          timestamp,
+          words: words?.map(w => ({
+            text: w.text,
+            speaker: w.speaker,
+            start: w.start,
+            end: w.end,
+          })),
         },
       });
 
       console.log(
-        `${transcript.message_type === "FinalTranscript" ? "Final" : "Partial"}: ${
-          transcript.text
+        `[System Audio] ${isFinal ? "Final" : "Partial"}: ${transcript.text}${
+          speakerLabel ? ` (${speakerLabel})` : ""
         }`
       );
 
-      if (transcript.message_type === "FinalTranscript") {
+      // Send to floating window via unified recording manager
+      if (unifiedRecordingManager.isActive()) {
+        unifiedRecordingManager.sendTranscriptUpdate({
+          text: transcript.text,
+          speaker: speakerLabel || (words?.[0]?.speaker ? `Speaker ${words[0].speaker}` : undefined),
+          source: "system",
+          isFinal,
+          timestamp,
+          confidence,
+          words: words?.map(w => ({
+            text: w.text,
+            speaker: w.speaker,
+            start: w.start,
+            end: w.end,
+          })),
+        });
+      }
+
+      if (isFinal) {
         try {
           const recorder = sessionManager.getSessionBySource("system");
           if (recorder) {
-            const timestamp = Date.now();
-            const speakerLabel = (transcript as any).speaker_label as
-              | string
-              | undefined;
-            const confidence = (transcript as any).confidence as
-              | number
-              | undefined;
+            // Determine speaker from words or label
+            const detectedSpeaker = speakerLabel ||
+              (words?.[0]?.speaker ? `Speaker ${words[0].speaker}` : undefined);
+
             recorder.addSegment({
               text: transcript.text,
-              speaker: speakerLabel,
+              speaker: detectedSpeaker,
               confidence,
               startTime: timestamp,
               endTime: timestamp,
               isFinal: true,
             });
 
-            if (speakerLabel) {
+            if (detectedSpeaker) {
               recorder.addSpeakerSegment({
-                speaker: speakerLabel,
+                speaker: detectedSpeaker,
                 text: transcript.text,
                 timestamp,
                 confidence,

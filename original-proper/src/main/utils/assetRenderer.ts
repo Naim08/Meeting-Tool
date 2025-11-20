@@ -28,8 +28,10 @@ async function getHiddenWindow(): Promise<BrowserWindow> {
     },
   });
 
-  // Load offline HTML for rendering
-  await hiddenWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getOfflineHtml())}`);
+  // Use base64 encoding for data URL - more compact than URL encoding
+  const htmlContent = getOfflineHtml();
+  const base64Html = Buffer.from(htmlContent).toString('base64');
+  await hiddenWindow.loadURL(`data:text/html;base64,${base64Html}`);
 
   // Wait for page to be ready
   await new Promise<void>((resolve) => {

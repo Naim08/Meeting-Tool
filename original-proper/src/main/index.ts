@@ -21,6 +21,7 @@ import {
   setMicrophoneRecording,
   setSystemAudioRecording,
 } from "./services/RecordingController";
+import { unifiedRecordingManager } from "./services/UnifiedRecordingManager";
 import screenshot from "screenshot-desktop";
 import {
   initializeDatabase,
@@ -127,6 +128,8 @@ export function safeStoreSet(key, value) {
 // Make store globally accessible
 globalThis.store = store;
 safeStoreSet("isMicrophoneEnabled", false);
+// Reset stale audio state on startup (process won't be running after restart)
+safeStoreSet("isAudioListenerEnabled", false);
 
 // Move hotkey-related functions to a separate file (hotkeyHandlers.ts)
 const { getHotKeyForPlatform } = setupHotkeyHandlers(store);
@@ -154,12 +157,11 @@ function createWindow() {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
-      devTools: !app.isPackaged,
+      devTools: true, // Always enable DevTools
     },
-    x: 100, // Start at a visible position
-    y: 100,
   };
 
+  // Panel type for macOS utility app behavior
   if (IS_OSX) {
     windowOptions.type = "panel";
     windowOptions.hasShadow = false;
@@ -175,6 +177,8 @@ function createWindow() {
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
+    // Auto-open DevTools
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   });
 
   // Configure overlay behaviour across platforms
@@ -185,6 +189,7 @@ function createWindow() {
   mainWindow.setContentProtection(true);
   mainWindow.setSkipTaskbar(true);
 
+  // macOS stealth settings for utility app behavior
   if (IS_OSX) {
     mainWindow.setHiddenInMissionControl(true);
     try {
@@ -397,6 +402,50 @@ app.whenReady().then(() => {
     }
   );
 
+  // Unified Recording IPC handlers
+  ipcMain.handle("unified-recording:start", async (_event, config?: { meetingId?: string; language?: string }) => {
+    if (!window) {
+      console.warn("[Main] No renderer window available for unified recording.");
+      return null;
+    }
+
+    // Initialize controller if needed
+    unifiedRecordingManager.initialize(window, store);
+    return await unifiedRecordingManager.startUnifiedRecording(config || {});
+  });
+
+  ipcMain.handle("unified-recording:stop", async () => {
+    return await unifiedRecordingManager.stopUnifiedRecording();
+  });
+
+  ipcMain.handle("unified-recording:status", () => {
+    return unifiedRecordingManager.getStatus();
+  });
+
+  // Audio level receivers for unified recording visualization
+  ipcMain.on("microphone-audio-level", (_event, level: number) => {
+    unifiedRecordingManager.updateMicrophoneLevel(level);
+  });
+
+  ipcMain.on("system-audio-level", (_event, level: number) => {
+    unifiedRecordingManager.updateSystemAudioLevel(level);
+  });
+
+  // Microphone transcript updates for floating window
+  ipcMain.on("microphone-transcript-update", (_event, data: any) => {
+    if (unifiedRecordingManager.isActive()) {
+      console.log("[Main] Forwarding microphone transcript to floating window:", data.text?.substring(0, 50));
+      unifiedRecordingManager.sendTranscriptUpdate({
+        text: data.text,
+        speaker: data.speaker || "You",
+        source: "microphone",
+        isFinal: data.isFinal,
+        timestamp: data.timestamp || Date.now(),
+        confidence: data.confidence,
+      });
+    }
+  });
+
   ipcMain.handle("electronMain:getHotkeys", () => {
     return Object.fromEntries(
       Object.values(KeyFunctions).map((func) => [
@@ -511,6 +560,26 @@ app.on("window-all-closed", () => {
 app.on("before-quit", async () => {
   // Unregister all shortcuts.
   globalShortcut.unregisterAll();
+  
+  // Cleanup recording manager and floating windows
+  try {
+    const { UnifiedRecordingManager } = await import("./services/UnifiedRecordingManager");
+    const manager = UnifiedRecordingManager.getInstance();
+    if (manager) {
+      await manager.cleanup();
+    }
+  } catch (error) {
+    console.error("[Main] Failed to cleanup recording manager:", error);
+  }
+  
+  // Cleanup asset renderer
+  try {
+    const { cleanupAssetRenderer } = await import("./utils/assetRenderer");
+    cleanupAssetRenderer();
+  } catch (error) {
+    console.error("[Main] Failed to cleanup asset renderer:", error);
+  }
+  
   if (isDatabaseInitialized()) {
     try {
       completeAllOpenChatSessions();

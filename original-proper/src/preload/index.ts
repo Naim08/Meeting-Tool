@@ -99,6 +99,19 @@ const api = {
     getDetails: (meetingId: string) =>
       ipcRenderer.invoke('meeting:getDetails', meetingId),
   },
+  unifiedRecording: {
+    start: (config?: { meetingId?: string; language?: string }) =>
+      ipcRenderer.invoke('unified-recording:start', config),
+    stop: () => ipcRenderer.invoke('unified-recording:stop'),
+    getStatus: () => ipcRenderer.invoke('unified-recording:status'),
+  },
+  // Send audio level for unified recording visualization
+  send: (channel: string, data: any) => {
+    const validChannels = ['microphone-audio-level', 'system-audio-level', 'microphone-transcript-update'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.send(channel, data);
+    }
+  },
   chatHistory: {
     createSession: (payload?: CreateChatSessionPayload): Promise<ChatSessionRecord> =>
       ipcRenderer.invoke('chat-history:create-session', payload),

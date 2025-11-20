@@ -11,6 +11,9 @@ export interface AudioConfig {
 export interface TranscriptionConfig {
   sampleRate: number;
   encoding: AudioEncoding;
+  // Speaker diarization options
+  speakerLabels?: boolean;
+  speakersExpected?: number;
 }
 
 export interface AudioProcessor {

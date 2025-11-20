@@ -5,6 +5,7 @@ import { safeStoreSet } from "./index";
 import { handleTranscribe } from "./audioRecorder";
 import sharp from "sharp";
 import { safeSendToRenderer } from "./utils/ipc";
+import { unifiedRecordingManager } from "./services/UnifiedRecordingManager";
 
 const IS_OSX = process.platform === "darwin";
 
@@ -61,6 +62,7 @@ export enum KeyFunctions {
   screengrab = "screengrab",
   toggleSystemAudio = "toggleSystemAudio",
   toggleMicrophone = "toggleMicrophone",
+  toggleUnifiedRecording = "toggleUnifiedRecording",
   cancel = "cancel",
   resetChat = "resetChat",
   scrollUp = "scrollUp",
@@ -84,6 +86,7 @@ export const defaultHotkeys: Record<string, string> = {
     ? "Super+Shift+A"
     : "Control+Shift+A",
   [KeyFunctions.toggleMicrophone]: IS_OSX ? "Super+Shift+M" : "Control+Shift+M",
+  [KeyFunctions.toggleUnifiedRecording]: "Control+D",
   [KeyFunctions.cancel]: IS_OSX ? "Shift+Esc" : "Shift+Esc",
   [KeyFunctions.resetChat]: "Home",
   [KeyFunctions.scrollUp]: "PageUp",
@@ -129,6 +132,9 @@ export function registerHotkey(
           break;
         case KeyFunctions.toggleMicrophone:
           handleToggleMicrophone(window);
+          break;
+        case KeyFunctions.toggleUnifiedRecording:
+          handleToggleUnifiedRecording(window, store);
           break;
         case KeyFunctions.screengrab:
           handleScreengrab(window, store);
@@ -448,13 +454,11 @@ function handleSubmitInput(window: BrowserWindow) {
 }
 
 function handleToggleSystemAudio(window: BrowserWindow, store: Store) {
+  console.log("[HotkeyHandlers] System audio hotkey pressed!");
   const isEnabled = !!store.get("isAudioListenerEnabled", false);
   const nextState = !isEnabled;
-  if (nextState) {
-    handleTranscribe(window, store);
-  } else {
-    handleTranscribe(window, store);
-  }
+  console.log(`[HotkeyHandlers] isEnabled: ${isEnabled}, nextState: ${nextState}`);
+  handleTranscribe(window, store);
 }
 
 function handleToggleMicrophone(window: BrowserWindow) {
@@ -468,6 +472,37 @@ function handleToggleMicrophone(window: BrowserWindow) {
     type: "microphone.toggle",
     value: nextState,
   });
+}
+
+async function handleToggleUnifiedRecording(window: BrowserWindow, store: Store) {
+  console.log("[HotkeyHandlers] Control+D pressed - toggling unified recording");
+
+  // Initialize the controller if not already done
+  if (!unifiedRecordingManager.isActive()) {
+    unifiedRecordingManager.initialize(window, store);
+  }
+
+  const isActive = unifiedRecordingManager.isActive();
+
+  if (isActive) {
+    // Stop unified recording
+    console.log("[HotkeyHandlers] Stopping unified recording");
+    const success = await unifiedRecordingManager.stopUnifiedRecording();
+    if (success) {
+      console.log("[HotkeyHandlers] Unified recording stopped successfully");
+    } else {
+      console.error("[HotkeyHandlers] Failed to stop unified recording");
+    }
+  } else {
+    // Start unified recording
+    console.log("[HotkeyHandlers] Starting unified recording");
+    const sessionId = await unifiedRecordingManager.startUnifiedRecording();
+    if (sessionId) {
+      console.log(`[HotkeyHandlers] Unified recording started: ${sessionId}`);
+    } else {
+      console.error("[HotkeyHandlers] Failed to start unified recording");
+    }
+  }
 }
 
 // Export the handleToggleTransparency function

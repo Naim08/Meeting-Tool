@@ -16,6 +16,9 @@ export const PROCESSED_AUDIO_CONFIG: AudioConfig = {
 export const TRANSCRIPTION_CONFIG: TranscriptionConfig = {
   sampleRate: 16000,
   encoding: "pcm_s16le" as AudioEncoding,
+  // Speaker diarization options for unified recording
+  speakerLabels: true,
+  speakersExpected: 2, // Interviewer + Interviewee
 };
 
 export const FILE_PATHS = {

@@ -214,6 +214,8 @@ export default function Chat() {
   const activeMeetingIdRef = useRef<string | null>(null);
   const [showMicTranscriptPanel, setShowMicTranscriptPanel] = useState(false);
   const [showSystemTranscriptPanel, setShowSystemTranscriptPanel] = useState(false);
+  const [isUnifiedRecording, setIsUnifiedRecording] = useState(false);
+  const [unifiedRecordingSessionId, setUnifiedRecordingSessionId] = useState<string | null>(null);
   const meetingControlledSourcesRef =
     useRef<MeetingControlledSourcesState>(createInitialMeetingControlledState());
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
@@ -576,10 +578,22 @@ export default function Chat() {
       console.log('[App] Calling handleMicTranscript with:', transcript);
       handleMicTranscript(transcript);
       setShowMicTranscriptPanel(true);
+
+      // Forward microphone transcripts to main process for floating window
+      // when unified recording is active
+      if (isUnifiedRecording) {
+        window?.api?.send('microphone-transcript-update', {
+          text: transcript.text,
+          speaker: "You",
+          isFinal: transcript.isFinal ?? true,
+          timestamp: Date.now(),
+          confidence: transcript.confidence,
+        });
+      }
     } catch (error) {
       console.error('[App] Error in transcript useEffect:', error);
     }
-  }, [transcript, handleMicTranscript]);
+  }, [transcript, handleMicTranscript, isUnifiedRecording]);
 
   useEffect(() => {
     window?.api?.isProd().then((value) => {
@@ -1247,6 +1261,44 @@ export default function Chat() {
           const submitButton = document.querySelector('button[type="submit"]');
           if (submitButton) {
             (submitButton as HTMLButtonElement).click();
+          }
+          break;
+        case "unified-recording.started":
+          console.log("[App] Unified recording started:", message.value);
+          setIsUnifiedRecording(true);
+          setUnifiedRecordingSessionId(message.value?.sessionId ?? null);
+          if (message.value?.meetingId) {
+            setActiveMeetingId(message.value.meetingId);
+            activeMeetingIdRef.current = message.value.meetingId;
+          }
+          break;
+        case "unified-recording.stopped":
+          console.log("[App] Unified recording stopped:", message.value);
+          setIsUnifiedRecording(false);
+          setUnifiedRecordingSessionId(null);
+          break;
+        case "microphone.start":
+          // Handle unified recording starting the microphone
+          console.log("[App] Microphone start request from unified recording:", message.value);
+          if (typeof startTranscription === "function") {
+            try {
+              await startTranscription();
+              console.log("[App] Microphone started for unified recording");
+            } catch (error) {
+              console.error("[App] Failed to start microphone for unified recording:", error);
+            }
+          }
+          break;
+        case "microphone.stop":
+          // Handle unified recording stopping the microphone
+          console.log("[App] Microphone stop request from unified recording");
+          if (typeof endTranscription === "function") {
+            try {
+              await endTranscription();
+              console.log("[App] Microphone stopped for unified recording");
+            } catch (error) {
+              console.error("[App] Failed to stop microphone for unified recording:", error);
+            }
           }
           break;
         default:

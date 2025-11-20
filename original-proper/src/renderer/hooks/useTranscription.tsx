@@ -201,7 +201,21 @@ const useTranscription = () => {
 
       workletNode.port.onmessage = (event) => {
         const { data } = event;
-        if (data instanceof Float32Array) {
+
+        // Handle new message format with type field
+        if (data && typeof data === "object" && "type" in data) {
+          if (data.type === "audio" && data.samples instanceof Float32Array) {
+            appendAudioSamples(data.samples);
+          } else if (data.type === "rms" && typeof data.level === "number") {
+            // Send RMS level to main process for unified recording
+            try {
+              window.api?.send?.("microphone-audio-level", data.level);
+            } catch (error) {
+              // Silently ignore if API not available
+            }
+          }
+        } else if (data instanceof Float32Array) {
+          // Backward compatibility: handle raw Float32Array
           appendAudioSamples(data);
         }
       };

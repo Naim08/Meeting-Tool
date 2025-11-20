@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Live Transcript</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Draggable Header -->
+    <header class="header" id="drag-region">
+      <div class="title">
+        <div class="recording-indicator"></div>
+        <span>Live Transcript</span>
+      </div>
+      <div class="controls">
+        <button id="btn-position" class="control-btn" title="Toggle Position">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 9l-3 3 3 3"/>
+            <path d="M19 9l3 3-3 3"/>
+            <path d="M2 12h20"/>
+          </svg>
+        </button>
+        <button id="btn-minimize" class="control-btn" title="Minimize">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Waveform Visualization -->
+    <section class="waveform-section">
+      <canvas id="waveform-canvas" width="380" height="100"></canvas>
+      <div class="audio-levels">
+        <div class="level-indicator">
+          <span class="level-label">Mic</span>
+          <div class="level-bar mic-bar">
+            <div class="level-fill" id="mic-level"></div>
+          </div>
+        </div>
+        <div class="level-indicator">
+          <span class="level-label">Sys</span>
+          <div class="level-bar system-bar">
+            <div class="level-fill" id="system-level"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transcript Feed -->
+    <section class="transcript-section">
+      <div class="transcript-feed" id="transcript-feed">
+        <div class="transcript-placeholder">
+          Waiting for speech...
+        </div>
+      </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <footer class="footer">
+      <button id="btn-clear" class="action-btn secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18"/>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        </svg>
+        Clear
+      </button>
+      <button id="btn-stop" class="action-btn primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="6" width="12" height="12" rx="2"/>
+        </svg>
+        Stop & Submit
+      </button>
+    </footer>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

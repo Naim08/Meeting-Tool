@@ -19,6 +19,18 @@ vi.mock('electron', () => ({
       }
       return os.tmpdir();
     }),
+    whenReady: vi.fn().mockResolvedValue(undefined),
+    on: vi.fn(),
+    quit: vi.fn(),
+    getName: vi.fn().mockReturnValue('test-app'),
+    getVersion: vi.fn().mockReturnValue('1.0.0'),
+    requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+    setLoginItemSettings: vi.fn(),
+    dock: {
+      hide: vi.fn(),
+      show: vi.fn(),
+      setIcon: vi.fn(),
+    },
   },
   BrowserWindow: vi.fn().mockImplementation(() => ({
     isDestroyed: () => false,
@@ -30,13 +42,91 @@ vi.mock('electron', () => ({
         error: null,
       }),
       once: vi.fn(),
+      on: vi.fn(),
       capturePage: vi.fn().mockResolvedValue({
         toPNG: () => Buffer.from('mock png'),
       }),
+      openDevTools: vi.fn(),
+      setWindowOpenHandler: vi.fn(),
     },
     loadURL: vi.fn().mockResolvedValue(undefined),
+    loadFile: vi.fn().mockResolvedValue(undefined),
+    destroy: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+    close: vi.fn(),
+    setAlwaysOnTop: vi.fn(),
+    setVisibleOnAllWorkspaces: vi.fn(),
+    setBounds: vi.fn(),
+    getBounds: vi.fn().mockReturnValue({ x: 0, y: 0, width: 800, height: 600 }),
+  })),
+  ipcMain: {
+    on: vi.fn(),
+    once: vi.fn(),
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
+  shell: {
+    openExternal: vi.fn().mockResolvedValue(undefined),
+    openPath: vi.fn().mockResolvedValue(''),
+    showItemInFolder: vi.fn(),
+  },
+  dialog: {
+    showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: [] }),
+    showSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '' }),
+    showMessageBox: vi.fn().mockResolvedValue({ response: 0 }),
+    showErrorBox: vi.fn(),
+  },
+  nativeTheme: {
+    shouldUseDarkColors: false,
+    themeSource: 'system',
+    on: vi.fn(),
+  },
+  screen: {
+    getPrimaryDisplay: vi.fn().mockReturnValue({
+      workAreaSize: { width: 1920, height: 1080 },
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+    }),
+    getAllDisplays: vi.fn().mockReturnValue([]),
+  },
+  globalShortcut: {
+    register: vi.fn().mockReturnValue(true),
+    unregister: vi.fn(),
+    unregisterAll: vi.fn(),
+    isRegistered: vi.fn().mockReturnValue(false),
+  },
+  systemPreferences: {
+    getMediaAccessStatus: vi.fn().mockReturnValue('granted'),
+    askForMediaAccess: vi.fn().mockResolvedValue(true),
+    isTrustedAccessibilityClient: vi.fn().mockReturnValue(true),
+  },
+  Menu: {
+    buildFromTemplate: vi.fn().mockReturnValue({}),
+    setApplicationMenu: vi.fn(),
+  },
+  Tray: vi.fn().mockImplementation(() => ({
+    setContextMenu: vi.fn(),
+    setToolTip: vi.fn(),
+    on: vi.fn(),
     destroy: vi.fn(),
   })),
+  powerMonitor: {
+    on: vi.fn(),
+    getSystemIdleTime: vi.fn().mockReturnValue(0),
+  },
+  session: {
+    defaultSession: {
+      webRequest: {
+        onBeforeSendHeaders: vi.fn(),
+      },
+      clearStorageData: vi.fn().mockResolvedValue(undefined),
+      clearCache: vi.fn().mockResolvedValue(undefined),
+      setPermissionRequestHandler: vi.fn(),
+    },
+  },
 }));
 
 // Mock database functions
