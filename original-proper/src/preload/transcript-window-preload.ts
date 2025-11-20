@@ -34,12 +34,49 @@ contextBridge.exposeInMainWorld("transcriptAPI", {
     ipcRenderer.on("position-changed", (_event, position) => callback(position));
   },
 
+  // Coaching event listeners
+  onCoachingTimerUpdate: (
+    callback: (data: {
+      questionType: string;
+      elapsedSeconds: number;
+      targetSeconds: number;
+      state: string;
+      progressPercent: number;
+    }) => void
+  ) => {
+    ipcRenderer.on("coaching:timer-update", (_event, data) => callback(data));
+  },
+
+  onCoachingStateChange: (
+    callback: (data: {
+      state: string;
+      questionType?: string;
+      questionTypeLabel?: string;
+      targetSeconds?: number;
+    }) => void
+  ) => {
+    ipcRenderer.on("coaching:state-change", (_event, data) => callback(data));
+  },
+
+  onCoachingNudge: (
+    callback: (data: {
+      type: string;
+      message: string;
+      dismissAfterMs: number;
+    }) => void
+  ) => {
+    ipcRenderer.on("coaching:nudge", (_event, data) => callback(data));
+  },
+
   // Remove listeners
   removeAllListeners: () => {
     ipcRenderer.removeAllListeners("audio-levels");
     ipcRenderer.removeAllListeners("transcript-update");
     ipcRenderer.removeAllListeners("clear-transcript");
     ipcRenderer.removeAllListeners("position-changed");
+    ipcRenderer.removeAllListeners("coaching:timer-update");
+    ipcRenderer.removeAllListeners("coaching:state-change");
+    ipcRenderer.removeAllListeners("coaching:nudge");
   },
 });
 
@@ -64,6 +101,30 @@ declare global {
       ) => void;
       onClearTranscript: (callback: () => void) => void;
       onPositionChanged: (callback: (position: "top-left" | "top-right") => void) => void;
+      onCoachingTimerUpdate: (
+        callback: (data: {
+          questionType: string;
+          elapsedSeconds: number;
+          targetSeconds: number;
+          state: string;
+          progressPercent: number;
+        }) => void
+      ) => void;
+      onCoachingStateChange: (
+        callback: (data: {
+          state: string;
+          questionType?: string;
+          questionTypeLabel?: string;
+          targetSeconds?: number;
+        }) => void
+      ) => void;
+      onCoachingNudge: (
+        callback: (data: {
+          type: string;
+          message: string;
+          dismissAfterMs: number;
+        }) => void
+      ) => void;
       removeAllListeners: () => void;
     };
   }

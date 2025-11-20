@@ -6,6 +6,7 @@ import { handleTranscribe } from "./audioRecorder";
 import sharp from "sharp";
 import { safeSendToRenderer } from "./utils/ipc";
 import { unifiedRecordingManager } from "./services/UnifiedRecordingManager";
+import { coachingManager } from "./services/CoachingManager";
 
 const IS_OSX = process.platform === "darwin";
 
@@ -63,6 +64,7 @@ export enum KeyFunctions {
   toggleSystemAudio = "toggleSystemAudio",
   toggleMicrophone = "toggleMicrophone",
   toggleUnifiedRecording = "toggleUnifiedRecording",
+  endCoachingTimer = "endCoachingTimer",
   cancel = "cancel",
   resetChat = "resetChat",
   scrollUp = "scrollUp",
@@ -87,6 +89,7 @@ export const defaultHotkeys: Record<string, string> = {
     : "Control+Shift+A",
   [KeyFunctions.toggleMicrophone]: IS_OSX ? "Super+Shift+M" : "Control+Shift+M",
   [KeyFunctions.toggleUnifiedRecording]: "Control+D",
+  [KeyFunctions.endCoachingTimer]: "Control+E",
   [KeyFunctions.cancel]: IS_OSX ? "Shift+Esc" : "Shift+Esc",
   [KeyFunctions.resetChat]: "Home",
   [KeyFunctions.scrollUp]: "PageUp",
@@ -135,6 +138,9 @@ export function registerHotkey(
           break;
         case KeyFunctions.toggleUnifiedRecording:
           handleToggleUnifiedRecording(window, store);
+          break;
+        case KeyFunctions.endCoachingTimer:
+          handleEndCoachingTimer(window);
           break;
         case KeyFunctions.screengrab:
           handleScreengrab(window, store);
@@ -455,6 +461,20 @@ function handleSubmitInput(window: BrowserWindow) {
 
 function handleToggleSystemAudio(window: BrowserWindow, store: Store) {
   console.log("[HotkeyHandlers] System audio hotkey pressed!");
+
+  // Guard: Block during unified mode to prevent parallel streams
+  if (unifiedRecordingManager.isActive()) {
+    console.log("[HotkeyHandlers] Blocked - unified recording active, use Control+D to stop");
+    safeSendToRenderer(window, {
+      type: "toast.show",
+      value: {
+        message: "Unified recording active. Use Control+D to stop.",
+        type: "warning",
+      },
+    });
+    return;
+  }
+
   const isEnabled = !!store.get("isAudioListenerEnabled", false);
   const nextState = !isEnabled;
   console.log(`[HotkeyHandlers] isEnabled: ${isEnabled}, nextState: ${nextState}`);
@@ -462,6 +482,19 @@ function handleToggleSystemAudio(window: BrowserWindow, store: Store) {
 }
 
 function handleToggleMicrophone(window: BrowserWindow) {
+  // Guard: Block during unified mode to prevent parallel streams
+  if (unifiedRecordingManager.isActive()) {
+    console.log("[HotkeyHandlers] Blocked - unified recording active, use Control+D to stop");
+    safeSendToRenderer(window, {
+      type: "toast.show",
+      value: {
+        message: "Unified recording active. Use Control+D to stop.",
+        type: "warning",
+      },
+    });
+    return;
+  }
+
   const store = globalThis.store as Store | undefined;
   const current = !!store?.get("isMicrophoneEnabled", false);
   const nextState = !current;
@@ -471,6 +504,26 @@ function handleToggleMicrophone(window: BrowserWindow) {
   safeSendToRenderer(window, {
     type: "microphone.toggle",
     value: nextState,
+  });
+}
+
+function handleEndCoachingTimer(window: BrowserWindow) {
+  console.log("[HotkeyHandlers] Control+E pressed - ending coaching timer");
+
+  if (!unifiedRecordingManager.isActive()) {
+    console.log("[HotkeyHandlers] No active unified recording, ignoring");
+    return;
+  }
+
+  // End coaching timer via hotkey
+  coachingManager.endViaHotkey();
+
+  safeSendToRenderer(window, {
+    type: "toast.show",
+    value: {
+      message: "Answer timer ended",
+      type: "info",
+    },
   });
 }
 

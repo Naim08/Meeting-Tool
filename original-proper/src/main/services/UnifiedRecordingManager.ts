@@ -6,8 +6,11 @@ import { getDb } from "./Database";
 import { sessionManager } from "./TranscriptionRecorder";
 import { SpeakerMapper } from "./SpeakerMapper";
 import { FloatingWindowManager } from "./FloatingWindowManager";
+import { transcriptAggregator } from "./TranscriptAggregator";
+import { coachingManager } from "./CoachingManager";
 import { safeSendToRenderer } from "../utils/ipc";
-import { handleTranscribe } from "../audioRecorder";
+// NOTE: handleTranscribe is imported dynamically to avoid circular dependency
+// UnifiedRecordingManager -> audioRecorder -> TranscriptionService -> UnifiedRecordingManager
 import type {
   UnifiedRecordingStatus,
   UnifiedRecordingConfig,
@@ -27,6 +30,10 @@ class UnifiedRecordingManager {
   private microphoneLevel: number = 0;
   private systemAudioLevel: number = 0;
   private audioLevelInterval: NodeJS.Timeout | null = null;
+
+  // Aggregator event listener cleanup
+  private aggregatorUnsubscribe: (() => void) | null = null;
+  private questionListenerUnsubscribe: (() => void) | null = null;
 
   private constructor() {
     this.speakerMapper = new SpeakerMapper();
@@ -73,6 +80,8 @@ class UnifiedRecordingManager {
       // This spawns capturekit and connects to AssemblyAI
       const isSystemAudioAlreadyEnabled = this.store!.get("isAudioListenerEnabled");
       if (!isSystemAudioAlreadyEnabled) {
+        // Dynamic import to avoid circular dependency
+        const { handleTranscribe } = await import("../audioRecorder");
         handleTranscribe(this.mainWindow, this.store);
         console.log("[UnifiedRecordingManager] System audio capture started");
       } else {
@@ -121,6 +130,84 @@ class UnifiedRecordingManager {
       // Launch floating transcript window
       await this.launchFloatingWindow();
 
+      // Initialize transcript aggregator for unified mode
+      transcriptAggregator.setUnifiedMode(true);
+      transcriptAggregator.reset();
+
+      // Set up aggregator event listener to route to floating window
+      this.aggregatorUnsubscribe = transcriptAggregator.onTranscriptEvent(
+        (data, segmentId, version) => {
+          // Send to floating window
+          if (this.floatingWindow) {
+            this.floatingWindow.sendTranscriptUpdate(data);
+          }
+
+          // Optionally mirror to main app (disabled by default)
+          if (transcriptAggregator.shouldMirrorToMainApp() && this.mainWindow) {
+            safeSendToRenderer(this.mainWindow, {
+              type: "transcription.update",
+              value: data,
+            });
+          }
+
+          // Route to coaching manager for speaker detection
+          const isInterviewer =
+            data.source === "microphone" ||
+            data.speaker?.toLowerCase().includes("interviewer");
+          const isCandidate =
+            data.source === "system" ||
+            data.speaker?.toLowerCase().includes("interviewee");
+
+          if (data.isFinal) {
+            if (isCandidate) {
+              coachingManager.handleCandidateSpeech({
+                id: segmentId,
+                version,
+                text: data.text,
+                normalizedText: data.text.toLowerCase(),
+                speaker: data.speaker || null,
+                source: data.source,
+                isFinal: data.isFinal,
+                timestamp: data.timestamp,
+                startTime: data.words?.[0]?.start ?? null,
+                endTime: data.words?.[data.words.length - 1]?.end ?? null,
+                confidence: data.confidence ?? null,
+                words: data.words,
+                emittedAt: Date.now(),
+                suppressedAsDuplicate: false,
+              });
+            } else if (isInterviewer) {
+              coachingManager.handleInterviewerSpeech({
+                id: segmentId,
+                version,
+                text: data.text,
+                normalizedText: data.text.toLowerCase(),
+                speaker: data.speaker || null,
+                source: data.source,
+                isFinal: data.isFinal,
+                timestamp: data.timestamp,
+                startTime: data.words?.[0]?.start ?? null,
+                endTime: data.words?.[data.words.length - 1]?.end ?? null,
+                confidence: data.confidence ?? null,
+                words: data.words,
+                emittedAt: Date.now(),
+                suppressedAsDuplicate: false,
+              });
+            }
+          }
+        }
+      );
+
+      // Set up interviewer question detection for coaching
+      this.questionListenerUnsubscribe = transcriptAggregator.onInterviewerQuestion(
+        async (segment) => {
+          await coachingManager.handleInterviewerQuestion(segment);
+        }
+      );
+
+      // Initialize coaching manager
+      coachingManager.initialize(sessionId, this.floatingWindow?.getWindow() || null);
+
       // Start audio level forwarding at 60fps
       this.startAudioLevelForwarding();
 
@@ -166,6 +253,21 @@ class UnifiedRecordingManager {
 
       console.log(`[UnifiedRecordingManager] Stopping unified recording: ${sessionId}`);
 
+      // Clean up aggregator event listeners
+      if (this.aggregatorUnsubscribe) {
+        this.aggregatorUnsubscribe();
+        this.aggregatorUnsubscribe = null;
+      }
+      if (this.questionListenerUnsubscribe) {
+        this.questionListenerUnsubscribe();
+        this.questionListenerUnsubscribe = null;
+      }
+
+      // Reset aggregator and coaching
+      transcriptAggregator.setUnifiedMode(false);
+      transcriptAggregator.reset();
+      coachingManager.reset();
+
       // Stop audio level forwarding
       this.stopAudioLevelForwarding();
 
@@ -178,6 +280,8 @@ class UnifiedRecordingManager {
       // Stop system audio recording (only if it's currently enabled)
       const isSystemAudioEnabled = this.store!.get("isAudioListenerEnabled");
       if (isSystemAudioEnabled) {
+        // Dynamic import to avoid circular dependency
+        const { handleTranscribe } = await import("../audioRecorder");
         handleTranscribe(this.mainWindow, this.store);
         console.log("[UnifiedRecordingManager] System audio capture stopped");
       }
@@ -372,9 +476,13 @@ class UnifiedRecordingManager {
     }
   }
 
-  // Send transcript update to floating window
+  // Send transcript update - routes through aggregator in unified mode
   sendTranscriptUpdate(data: TranscriptUpdateData): void {
-    if (this.floatingWindow) {
+    // In unified mode, route through aggregator for deduplication
+    if (transcriptAggregator.isUnifiedMode()) {
+      transcriptAggregator.ingest(data);
+    } else if (this.floatingWindow) {
+      // Legacy mode - send directly
       this.floatingWindow.sendTranscriptUpdate(data);
     }
   }
@@ -382,6 +490,31 @@ class UnifiedRecordingManager {
   getFloatingWindow(): FloatingWindowManager | null {
     return this.floatingWindow;
   }
+
+  /**
+   * Cleanup method for app shutdown
+   */
+  async cleanup(): Promise<void> {
+    console.log("[UnifiedRecordingManager] Cleaning up...");
+
+    // Stop any active recording
+    if (this.currentSession) {
+      await this.stopUnifiedRecording();
+    }
+
+    // Stop audio level forwarding
+    this.stopAudioLevelForwarding();
+
+    // Close floating window
+    this.closeFloatingWindow();
+
+    // Reset references
+    this.mainWindow = null;
+    this.store = null;
+
+    console.log("[UnifiedRecordingManager] Cleanup complete");
+  }
 }
 
 export const unifiedRecordingManager = UnifiedRecordingManager.getInstance();
+export { UnifiedRecordingManager };

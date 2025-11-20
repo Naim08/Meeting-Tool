@@ -50,6 +50,33 @@
       </div>
     </section>
 
+    <!-- Coach Timer Pill (hidden by default) -->
+    <section class="coach-section" id="coach-section" style="display: none;">
+      <div class="coach-pill">
+        <div class="coach-progress-ring">
+          <svg class="progress-svg" viewBox="0 0 36 36">
+            <path class="progress-bg"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+            <path class="progress-fill" id="progress-fill"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round"
+              stroke-dasharray="0, 100"/>
+          </svg>
+        </div>
+        <div class="coach-info">
+          <span class="coach-type" id="coach-type">General</span>
+          <span class="coach-timer" id="coach-timer">0:00 / 1:00</span>
+        </div>
+        <div class="coach-state" id="coach-state">ARMED</div>
+      </div>
+    </section>
+
+    <!-- Nudge Display (hidden by default) -->
+    <div class="nudge-container" id="nudge-container" style="display: none;">
+      <div class="nudge-message" id="nudge-message"></div>
+    </div>
+
     <!-- Transcript Feed -->
     <section class="transcript-section">
       <div class="transcript-feed" id="transcript-feed">
@@ -100,10 +127,21 @@
       const transcriptSegments = [];
       const MAX_SEGMENTS = 100;
 
+      // Coach state
+      let coachState = "idle";
+      let nudgeTimeout = null;
+
       // DOM elements
       let transcriptFeed = null;
       let micLevelBar = null;
       let systemLevelBar = null;
+      let coachSection = null;
+      let coachType = null;
+      let coachTimer = null;
+      let coachStateEl = null;
+      let progressFill = null;
+      let nudgeContainer = null;
+      let nudgeMessage = null;
 
       // Initialize the window
       function initialize() {
@@ -113,6 +151,15 @@
         transcriptFeed = document.getElementById("transcript-feed");
         micLevelBar = document.getElementById("mic-level");
         systemLevelBar = document.getElementById("system-level");
+
+        // Coach DOM elements
+        coachSection = document.getElementById("coach-section");
+        coachType = document.getElementById("coach-type");
+        coachTimer = document.getElementById("coach-timer");
+        coachStateEl = document.getElementById("coach-state");
+        progressFill = document.getElementById("progress-fill");
+        nudgeContainer = document.getElementById("nudge-container");
+        nudgeMessage = document.getElementById("nudge-message");
 
         // Set up event listeners
         setupEventListeners();
@@ -177,6 +224,27 @@
         window.transcriptAPI.onPositionChanged((position) => {
           console.log("[FloatingWindow] Position changed to:", position);
         });
+
+        // Coaching: Timer updates
+        if (window.transcriptAPI.onCoachingTimerUpdate) {
+          window.transcriptAPI.onCoachingTimerUpdate((data) => {
+            updateCoachTimer(data);
+          });
+        }
+
+        // Coaching: State changes
+        if (window.transcriptAPI.onCoachingStateChange) {
+          window.transcriptAPI.onCoachingStateChange((data) => {
+            updateCoachState(data);
+          });
+        }
+
+        // Coaching: Nudges
+        if (window.transcriptAPI.onCoachingNudge) {
+          window.transcriptAPI.onCoachingNudge((data) => {
+            showNudge(data);
+          });
+        }
       }
 
       // Animation loop for waveform visualization
@@ -375,6 +443,101 @@
         transcriptSegments.length = 0;
         transcriptFeed.innerHTML = '<div class="transcript-placeholder">Waiting for speech...</div>';
         console.log("[FloatingWindow] Transcript cleared");
+      }
+
+      // Coaching: Update timer display
+      function updateCoachTimer(data) {
+        if (!coachSection || !coachTimer || !progressFill) return;
+
+        const { elapsedSeconds, targetSeconds, progressPercent } = data;
+
+        // Update timer text
+        const elapsed = formatTime(elapsedSeconds);
+        const target = formatTime(targetSeconds);
+        coachTimer.textContent = `${elapsed} / ${target}`;
+
+        // Update progress ring (circumference is ~100 for our SVG path)
+        const dashArray = `${progressPercent}, 100`;
+        progressFill.setAttribute("stroke-dasharray", dashArray);
+
+        // Color changes based on progress
+        if (progressPercent >= 100) {
+          progressFill.setAttribute("stroke", "#ef4444"); // Red
+        } else if (progressPercent >= 75) {
+          progressFill.setAttribute("stroke", "#f59e0b"); // Amber
+        } else {
+          progressFill.setAttribute("stroke", "#60a5fa"); // Blue
+        }
+      }
+
+      // Coaching: Update state display
+      function updateCoachState(data) {
+        if (!coachSection || !coachStateEl || !coachType) return;
+
+        const { state, questionTypeLabel, targetSeconds } = data;
+        coachState = state;
+
+        // Show/hide coach section
+        if (state === "idle" || state === "ended") {
+          coachSection.style.display = "none";
+          return;
+        }
+
+        coachSection.style.display = "block";
+
+        // Update question type label
+        if (questionTypeLabel) {
+          coachType.textContent = questionTypeLabel;
+        }
+
+        // Update state badge
+        coachStateEl.textContent = state.toUpperCase().replace("_", " ");
+        coachStateEl.className = "coach-state " + state;
+
+        // Reset timer display if armed
+        if (state === "armed" && targetSeconds) {
+          coachTimer.textContent = `0:00 / ${formatTime(targetSeconds)}`;
+          progressFill.setAttribute("stroke-dasharray", "0, 100");
+          progressFill.setAttribute("stroke", "#60a5fa");
+        }
+
+        console.log("[FloatingWindow] Coach state:", state);
+      }
+
+      // Coaching: Show nudge (non-modal, auto-dismiss, never stacks)
+      function showNudge(data) {
+        if (!nudgeContainer || !nudgeMessage) return;
+
+        const { message, dismissAfterMs } = data;
+
+        // Clear any existing nudge timeout
+        if (nudgeTimeout) {
+          clearTimeout(nudgeTimeout);
+          nudgeTimeout = null;
+        }
+
+        // Update nudge message
+        nudgeMessage.textContent = message;
+        nudgeContainer.style.display = "flex";
+        nudgeContainer.classList.add("visible");
+
+        console.log("[FloatingWindow] Nudge:", message);
+
+        // Auto-dismiss
+        nudgeTimeout = setTimeout(() => {
+          nudgeContainer.classList.remove("visible");
+          setTimeout(() => {
+            nudgeContainer.style.display = "none";
+          }, 300);
+          nudgeTimeout = null;
+        }, dismissAfterMs || 5000);
+      }
+
+      // Helper: Format seconds as M:SS
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
       }
 
       // Cleanup on window close

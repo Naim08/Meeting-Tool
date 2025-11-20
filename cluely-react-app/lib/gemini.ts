@@ -5,26 +5,19 @@
  * NEVER import this module in client-side code.
  */
 
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 // Validate API key is present (server-side only)
 if (!process.env.GOOGLE_GENAI_API_KEY) {
-  throw new Error(
-    'GOOGLE_GENAI_API_KEY is not set. Add it to your .env.local file (server-side only)'
+  console.warn(
+    '[Gemini] GOOGLE_GENAI_API_KEY is not set. Classification will fall back to heuristics.'
   );
 }
 
 // Initialize Google GenAI client
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENAI_API_KEY);
-
-/**
- * Get Gemini 2.5 Flash model instance
- */
-export function getGeminiModel(): GenerativeModel {
-  return genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-  });
-}
+const ai = process.env.GOOGLE_GENAI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY })
+  : null;
 
 /**
  * Generate content with Gemini using system + user messages
@@ -37,17 +30,20 @@ export async function generateWithGemini(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{ text: string; usage: { promptTokens?: number; completionTokens?: number } }> {
-  const model = getGeminiModel();
+  if (!ai) {
+    throw new Error('GOOGLE_GENAI_API_KEY is not configured');
+  }
+
+  // Combine system prompt and user prompt
+  const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
   try {
-    // Combine system prompt and user prompt
-    const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: combinedPrompt,
+    });
 
-    // Generate content with the combined prompt
-    const result = await model.generateContent(combinedPrompt);
-
-    const response = result.response;
-    const text = response.text();
+    const text = response.text || '';
 
     // Extract token usage if available
     const usage = {
@@ -58,9 +54,7 @@ export async function generateWithGemini(
     return { text, usage };
   } catch (error) {
     console.error('[Gemini] Generation error:', error);
-    throw new Error(
-      `Gemini generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw error;
   }
 }
 
@@ -72,7 +66,7 @@ export async function generateWithGemini(
  * @param userPrompt - User content/query
  * @returns Parsed JSON object and token usage
  */
-export async function generateJSON<T = any>(
+export async function generateJSON<T = unknown>(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{ data: T; usage: { promptTokens?: number; completionTokens?: number } }> {

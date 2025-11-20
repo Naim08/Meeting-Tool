@@ -117,6 +117,26 @@ export function initializeDatabase() {
     );
   `);
 
+  // Coaching events table for question-aware timing coach
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coaching_events (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      question_text TEXT NOT NULL,
+      question_type TEXT NOT NULL,
+      classification_confidence REAL,
+      budget_seconds INTEGER NOT NULL,
+      actual_seconds INTEGER,
+      soft_nudge_fired INTEGER DEFAULT 0,
+      hard_nudge_fired INTEGER DEFAULT 0,
+      end_reason TEXT,
+      started_at INTEGER NOT NULL,
+      ended_at INTEGER,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES unified_transcriptions(session_id) ON DELETE CASCADE
+    );
+  `);
+
   const ensureColumn = (table: string, column: string, definition: string) => {
     const pragmaStmt = db.prepare(`PRAGMA table_info(${table})`);
     const columns = pragmaStmt.all() as Array<{ name: string }>;
@@ -145,6 +165,8 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_status ON unified_transcriptions(status);
     CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_meeting_id ON unified_transcriptions(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_unified_transcriptions_started_at ON unified_transcriptions(started_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_coaching_events_session_id ON coaching_events(session_id);
+    CREATE INDEX IF NOT EXISTS idx_coaching_events_started_at ON coaching_events(started_at DESC);
   `);
 
   db.exec(`
